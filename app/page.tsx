@@ -2,7 +2,13 @@
 
 import { useState } from 'react'
 
-// ── Types matching Python API response ──────────────────
+// ── Updated Types matching expanded Python API response ──────────────────
+interface ClinicalEntity {
+  word: string
+  entity_group?: string
+  score: number
+}
+
 interface OttamooliRemedy {
   medicine_name: string
   sanskrit_name: string
@@ -21,12 +27,6 @@ interface ClassicalFormulation {
   reference_text: string
 }
 
-interface PanchakarmaTherapy {
-  therapy_name: string
-  description: string
-  indication: string
-}
-
 interface DietaryAdvice {
   foods_to_favor: string[]
   foods_to_avoid: string[]
@@ -43,7 +43,6 @@ interface TreatmentInfo {
   rupa_symptoms: string[]
   ottamooli_single_remedies: OttamooliRemedy[]
   classical_formulations: ClassicalFormulation[]
-  panchakarma_treatments: PanchakarmaTherapy[]
   pathya_dietary_advice: DietaryAdvice
   vihara_lifestyle: string[]
   yoga_exercises: string[]
@@ -51,9 +50,6 @@ interface TreatmentInfo {
   prognosis: string
   warning_signs: string[]
   disclaimer: string
-  note?: string
-  snomed_code?: string
-  snomed_name?: string
 }
 
 interface ConditionResult {
@@ -71,18 +67,20 @@ interface ConditionResult {
 
 interface APIResponse {
   input_text: string
-  entities_extracted: { text: string; label: string; score: number }[]
+  clinical_entities: ClinicalEntity[] // From Bio_ClinicalBERT
+  umls_cui: string                  // From SciSpacy + UMLS Linker
   conditions_matched: number
   results: ConditionResult[]
 }
 
-// ✅ Corrected: Defaults to your deployed Modal endpoint
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://aravindkv28--ayurparam-service-ayurengine-process-query.modal.run'
+// Defaults to your specific FastAPI endpoint on Modal
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://aravindkv28--ayurparam-service-fastapi-app.modal.run'
 
 export default function Home() {
   const [inputText, setInputText] = useState('')
   const [results, setResults] = useState<ConditionResult[]>([])
-  const [entities, setEntities] = useState<{ text: string; label: string; score: number }[]>([])
+  const [clinicalEntities, setClinicalEntities] = useState<ClinicalEntity[]>([])
+  const [umlsCui, setUmlsCui] = useState<string>('')
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [error, setError] = useState('')
   const [hasSearched, setHasSearched] = useState(false)
@@ -94,7 +92,6 @@ export default function Home() {
     setHasSearched(true)
 
     try {
-      // ✅ FIX: Using backticks for template literal and calling the root of the Modal endpoint
       const res = await fetch(`${API_BASE}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -105,19 +102,19 @@ export default function Home() {
       
       const data: APIResponse = await res.json()
       
-      // ✅ Handle cases where results might be empty
       if (data.results && data.results.length > 0) {
         setResults(data.results)
-        setEntities(data.entities_extracted || [])
+        setClinicalEntities(data.clinical_entities || [])
+        setUmlsCui(data.umls_cui || 'N/A')
       } else {
         setResults([])
-        setError('No matching Ayurvedic conditions found in the database or via AI.')
+        setError('No matching Ayurvedic conditions found.')
       }
     } catch (err: any) {
       console.error("Connection Error:", err)
       setError('Could not connect to the cloud AI. Check your internet or Modal deployment.')
       setResults([])
-      setEntities([])
+      setClinicalEntities([])
     } finally {
       setIsAnalyzing(false)
     }
@@ -208,6 +205,37 @@ export default function Home() {
           </div>
         )}
 
+        {/* ─── CLINICAL INTELLIGENCE DISPLAY (ClinicalBERT & UMLS) ─── */}
+        {results.length > 0 && (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
+            <div style={{ padding: 20, background: '#EFF6FF', border: '1px solid #DBEAFE', borderRadius: 16 }}>
+              <h3 style={{ fontSize: 11, fontWeight: 700, color: '#1E40AF', textTransform: 'uppercase', marginBottom: 12 }}>
+                Clinical Entities (Bio_ClinicalBERT)
+              </h3>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {clinicalEntities.map((ent, i) => (
+                  <span key={i} style={{ padding: '4px 10px', background: '#fff', border: '1px solid #BFDBFE', borderRadius: 8, fontSize: 12, color: '#1D4ED8' }}>
+                    {ent.word}
+                  </span>
+                ))}
+                {clinicalEntities.length === 0 && <span style={{ fontSize: 12, fontStyle: 'italic', color: '#60A5FA' }}>Analyzing clinical context...</span>}
+              </div>
+            </div>
+
+            <div style={{ padding: 20, background: '#FAF5FF', border: '1px solid #F3E8FF', borderRadius: 16 }}>
+              <h3 style={{ fontSize: 11, fontWeight: 700, color: '#6B21A8', textTransform: 'uppercase', marginBottom: 12 }}>
+                Standardized Mapping (UMLS)
+              </h3>
+              <div style={{ fontSize: 13, color: '#7E22CE', fontWeight: 500 }}>
+                UMLS CUI: <span style={{ fontFamily: 'monospace', background: '#fff', padding: '2px 6px', borderRadius: 4 }}>{umlsCui}</span>
+              </div>
+              <div style={{ fontSize: 13, color: '#7E22CE', fontWeight: 500, marginTop: 8 }}>
+                SNOMED CT: <span style={{ fontFamily: 'monospace', background: '#fff', padding: '2px 6px', borderRadius: 4 }}>{results[0].snomed_code}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* ─── RESULTS ─── */}
         {results.map((result, index) => {
           const info = result.treatment_info;
@@ -220,8 +248,8 @@ export default function Home() {
                 padding: '14px 20px', background: 'var(--green-deep)', borderRadius: 12, marginBottom: 20, color: '#fff'
               }}>
                 <div>
-                    <div style={{ fontSize: 16, fontWeight: 600 }}>Ayurvedic Match Found</div>
-                    <div style={{ fontSize: 12, opacity: 0.8 }}>Matched: {result.ayurveda_term}</div>
+                    <div style={{ fontSize: 16, fontWeight: 600 }}>Ayurvedic Protocol Generated</div>
+                    <div style={{ fontSize: 12, opacity: 0.8 }}>Entity: {result.ayurveda_term}</div>
                 </div>
                 <div style={{ fontSize: 28, fontWeight: 700 }}>{result.match_score}%</div>
               </div>
@@ -230,27 +258,39 @@ export default function Home() {
                 <h2 style={{ fontSize: 30, color: 'var(--green-deep)' }}>{result.ayurveda_term}</h2>
                 <p style={{ color: 'var(--terra)', fontStyle: 'italic' }}>{result.sanskrit || info.sanskrit_name}</p>
                 <div style={{ fontSize: 13, color: 'var(--text-light)', marginTop: 10 }}>
-                  SNOMED CT: <span style={{ background: 'var(--bg-warm)', padding: '2px 6px' }}>{result.snomed_code}</span> {result.snomed_name}
+                  SNOMED CT Descriptor: <span style={{ background: 'var(--bg-warm)', padding: '2px 6px' }}>{result.snomed_name}</span>
                 </div>
               </Card>
 
-              <SectionCard icon="📋" iconBg="var(--green-light)" title="Description">
+              <SectionCard icon="📋" iconBg="#DCFCE7" title="Clinical Description">
                 <p style={{ fontSize: 15, lineHeight: 1.6, color: 'var(--text-mid)' }}>{info.brief_description || result.who_description}</p>
               </SectionCard>
 
               {hasLLM && (
                 <>
-                  <SectionCard icon="🌿" iconBg="var(--green-light)" title="Ottamooli Remedies">
+                  <SectionCard icon="🌿" iconBg="#DCFCE7" title="Ottamooli (Single Remedies)">
                     {info.ottamooli_single_remedies.map((r, i) => (
-                      <div key={i} style={{ padding: 10, borderBottom: '1px solid var(--border)' }}>
-                        <strong>{r.medicine_name}</strong> - {r.preparation} ({r.dosage})
+                      <div key={i} style={{ padding: 12, borderBottom: i !== info.ottamooli_single_remedies.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                        <strong style={{ color: 'var(--green-deep)' }}>{r.medicine_name}</strong> ({r.sanskrit_name})
+                        <div style={{ fontSize: 13, color: 'var(--text-mid)', marginTop: 4 }}>
+                          Preparation: {r.preparation} | Dosage: {r.dosage}
+                        </div>
                       </div>
                     ))}
                   </SectionCard>
 
-                  <SectionCard icon="🍽️" iconBg="var(--green-light)" title="Diet (Pathya)">
-                    <div style={{ color: 'var(--green-deep)' }}>Favor: {info.pathya_dietary_advice.foods_to_favor.join(', ')}</div>
-                    <div style={{ color: 'var(--red-warn)', marginTop: 5 }}>Avoid: {info.pathya_dietary_advice.foods_to_avoid.join(', ')}</div>
+                  <SectionCard icon="🍽️" iconBg="#FEF3C7" title="Dietary (Pathya-Apathya)">
+                    <div style={{ marginBottom: 12 }}>
+                      <strong style={{ fontSize: 14, color: '#166534' }}>✅ Favor (Pathya):</strong>
+                      <div style={{ fontSize: 14, color: '#166534', marginTop: 4 }}>{info.pathya_dietary_advice.foods_to_favor.join(', ')}</div>
+                    </div>
+                    <div>
+                      <strong style={{ fontSize: 14, color: '#991B1B' }}>❌ Avoid (Apathya):</strong>
+                      <div style={{ fontSize: 14, color: '#991B1B', marginTop: 4 }}>{info.pathya_dietary_advice.foods_to_avoid.join(', ')}</div>
+                    </div>
+                    <div style={{ marginTop: 12, fontSize: 13, fontStyle: 'italic', borderTop: '1px solid var(--border)', paddingTop: 8 }}>
+                      Note: {info.pathya_dietary_advice.specific_dietary_rules}
+                    </div>
                   </SectionCard>
                 </>
               )}
