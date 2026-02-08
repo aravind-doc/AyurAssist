@@ -1,3 +1,4 @@
+// Point this to your Modal deployment URL
 const API_BASE = 'https://aravindkv28--ayurparam-service-fastapi-app.modal.run';
 
 // Wake up GPU container while the user types (fire-and-forget)
@@ -9,13 +10,16 @@ const loadingEl = document.getElementById('loading');
 const errorEl = document.getElementById('error');
 const resultsEl = document.getElementById('results');
 
-// Example buttons
-document.getElementById('examples').addEventListener('click', (e) => {
-  if (e.target.classList.contains('example-btn')) {
-    input.value = e.target.dataset.value;
-    analyzeBtn.disabled = false;
-  }
-});
+// Example buttons (inside <div id="examples">)
+const examplesContainer = document.getElementById('examples');
+if (examplesContainer) {
+  examplesContainer.addEventListener('click', (e) => {
+    if (e.target.classList.contains('example-btn')) {
+      input.value = e.target.dataset.value || '';
+      analyzeBtn.disabled = !input.value.trim();
+    }
+  });
+}
 
 // Enable/disable button based on input
 input.addEventListener('input', () => {
@@ -25,6 +29,7 @@ input.addEventListener('input', () => {
 // Enter key submits
 input.addEventListener('keypress', (e) => {
   if (e.key === 'Enter' && input.value.trim()) {
+    e.preventDefault();
     analyze();
   }
 });
@@ -42,9 +47,10 @@ async function analyze() {
   loadingEl.classList.remove('hidden');
   errorEl.classList.add('hidden');
   resultsEl.classList.add('hidden');
+  resultsEl.innerHTML = '';
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 120000);
+  const timeout = setTimeout(() => controller.abort(), 120000); // 120s
 
   try {
     const response = await fetch(API_BASE, {
@@ -56,7 +62,9 @@ async function analyze() {
 
     clearTimeout(timeout);
 
-    if (!response.ok) throw new Error('HTTP ' + response.status);
+    if (!response.ok) {
+      throw new Error('HTTP ' + response.status);
+    }
 
     const data = await response.json();
     renderResults(data);
@@ -64,7 +72,7 @@ async function analyze() {
     const msg = err.name === 'AbortError'
       ? 'Request timeout. AI is processing, please try again.'
       : 'Cannot connect to backend. Check Modal deployment.';
-    errorEl.textContent = '\u26A0\uFE0F ' + msg;
+    errorEl.textContent = '⚠️ ' + msg;
     errorEl.classList.remove('hidden');
   } finally {
     analyzeBtn.disabled = false;
@@ -73,16 +81,18 @@ async function analyze() {
   }
 }
 
+// Escape HTML to avoid injecting raw HTML from model
 function esc(str) {
+  if (str == null) return '';
   const div = document.createElement('div');
-  div.textContent = str;
+  div.textContent = String(str);
   return div.innerHTML;
 }
 
 function renderResults(data) {
   const treatment = data.results && data.results[0] && data.results[0].treatment_info;
   if (!treatment) {
-    errorEl.textContent = '\u26A0\uFE0F No treatment information found for this symptom.';
+    errorEl.textContent = '⚠️ No treatment information found for this symptom.';
     errorEl.classList.remove('hidden');
     return;
   }
@@ -90,11 +100,12 @@ function renderResults(data) {
   const resp = treatment.ayurparam_responses || {};
   let html = '';
 
-  // Clinical Entities & Medical Codes
+  // Clinical entities + codes block (simple layout; uses your CSS)
   html += '<div class="info-grid">';
 
   // Clinical Entities
-  html += '<div class="clinical-entities-card"><h3>CLINICAL ENTITIES</h3><div class="entity-tags">';
+  html += '<div class="clinical-entities-card">';
+  html += '<h3>CLINICAL ENTITIES</h3><div class="entity-tags">';
   if (data.clinical_entities && data.clinical_entities.length) {
     data.clinical_entities.forEach((ent) => {
       html += '<span class="entity-tag">' + esc(ent.word) + '</span>';
@@ -110,7 +121,7 @@ function renderResults(data) {
   html += '<div class="code-line"><strong>SNOMED:</strong> ' + esc(snomed) + '</div>';
   html += '</div>';
 
-  html += '</div>';
+  html += '</div>'; // end info-grid
 
   // Condition Banner
   html += '<div class="condition-banner">';
@@ -118,28 +129,30 @@ function renderResults(data) {
   html += '<p>' + esc(treatment.sanskrit_name || '') + '</p>';
   html += '</div>';
 
-  // Render each AyurParam response section
-  var sections = [
-    { key: 'overview_dosha_causes', title: '\uD83D\uDCCB Overview, Dosha & Causes' },
-    { key: 'symptoms', title: '\uD83E\uDE7A Symptoms (Purvarupa & Rupa)' },
-    { key: 'single_drug_remedies', title: '\uD83C\uDF3F Single Drug Remedies (Ottamooli)' },
-    { key: 'classical_formulations', title: '\uD83D\uDCDC Classical Formulations' },
-    { key: 'panchakarma_diet_lifestyle_yoga', title: '\uD83C\uDF7D\uFE0F Panchakarma, Diet, Lifestyle & Yoga' },
-    { key: 'prognosis_modern_warnings', title: '\u26A0\uFE0F Prognosis & Warning Signs' },
+  // AyurParam response sections – each is a text block from the model
+  const sections = [
+    { key: 'overview_dosha_causes', title: '📋 Overview, Dosha & Causes' },
+    { key: 'symptoms', title: '🩺 Symptoms (Purvarupa & Rupa)' },
+    { key: 'single_drug_remedies', title: '🌿 Single Drug Remedies (Ottamooli)' },
+    { key: 'classical_formulations', title: '📜 Classical Formulations' },
+    { key: 'panchakarma_diet_lifestyle_yoga', title: '🍽️ Panchakarma, Diet, Lifestyle & Yoga' },
+    { key: 'prognosis_modern_warnings', title: '⚠️ Prognosis & Warning Signs' },
   ];
 
-  sections.forEach(function(sec) {
-    var text = resp[sec.key];
+  sections.forEach((sec) => {
+    const text = resp[sec.key];
     if (text) {
-      html += '<div class="card"><h3>' + sec.title + '</h3>';
-      html += '<div style="white-space:pre-line;font-size:0.9rem;line-height:1.7">' + esc(text) + '</div>';
-      html += '</div>';
+      html += '<div class="card">';
+      html += '<h3>' + esc(sec.title) + '</h3>';
+      html += '<div style="white-space:pre-line;font-size:0.9rem;line-height:1.7">';
+      html += esc(text);
+      html += '</div></div>';
     }
   });
 
-  // Disclaimer
+  // Disclaimer from model
   if (treatment.disclaimer) {
-    html += '<div class="disclaimer">\u2695\uFE0F ' + esc(treatment.disclaimer) + '</div>';
+    html += '<div class="disclaimer">⚕️ ' + esc(treatment.disclaimer) + '</div>';
   }
 
   resultsEl.innerHTML = html;
