@@ -1,1095 +1,260 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AyurAssist — UI Design</title>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,700;1,9..144,400&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<style>
-  :root {
-    --bg-cream: #F7F3ED;
-    --bg-warm: #EDE8DF;
-    --bg-card: #FFFFFF;
-    --green-deep: #2D5016;
-    --green-mid: #4A7C28;
-    --green-soft: #6B9B3A;
-    --green-light: #E8F0DE;
-    --green-glow: #A4C639;
-    --amber: #D4A017;
-    --amber-soft: #FFF3D0;
-    --terra: #8B4513;
-    --terra-soft: #F5E6D3;
-    --red-warn: #C0392B;
-    --red-soft: #FDEDEB;
-    --text-dark: #1A1A1A;
-    --text-mid: #4A4A4A;
-    --text-light: #7A7A7A;
-    --border: #E0D8CC;
-    --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
-    --shadow-md: 0 4px 16px rgba(0,0,0,0.08);
-    --shadow-lg: 0 8px 32px rgba(0,0,0,0.10);
-    --radius-sm: 8px;
-    --radius-md: 12px;
-    --radius-lg: 20px;
-    --radius-xl: 28px;
-  }
-
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-
-  body {
-    font-family: 'DM Sans', sans-serif;
-    background: var(--bg-cream);
-    color: var(--text-dark);
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
-
-  /* ─── Background Pattern ─── */
-  body::before {
-    content: '';
-    position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background:
-      radial-gradient(circle at 15% 20%, rgba(74,124,40,0.04) 0%, transparent 50%),
-      radial-gradient(circle at 85% 80%, rgba(212,160,23,0.04) 0%, transparent 50%),
-      radial-gradient(circle at 50% 50%, rgba(107,155,58,0.02) 0%, transparent 70%);
-    pointer-events: none;
-    z-index: 0;
-  }
-
-  .app-container {
-    max-width: 900px;
-    margin: 0 auto;
-    padding: 24px 20px 60px;
-    position: relative;
-    z-index: 1;
-  }
-
-  /* ─── Header ─── */
-  .header {
-    text-align: center;
-    padding: 48px 0 36px;
-    position: relative;
-  }
-
-  .header-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    background: var(--green-light);
-    color: var(--green-deep);
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-    padding: 6px 16px;
-    border-radius: 100px;
-    margin-bottom: 16px;
-  }
-
-  .header h1 {
-    font-family: 'Fraunces', serif;
-    font-size: 44px;
-    font-weight: 700;
-    color: var(--green-deep);
-    letter-spacing: -1px;
-    line-height: 1.1;
-  }
-
-  .header h1 span {
-    color: var(--green-soft);
-    font-weight: 300;
-    font-style: italic;
-  }
-
-  .header-sub {
-    font-size: 15px;
-    color: var(--text-light);
-    margin-top: 8px;
-    font-weight: 400;
-  }
-
-  .header-divider {
-    width: 60px;
-    height: 3px;
-    background: linear-gradient(90deg, var(--green-soft), var(--amber));
-    margin: 20px auto 0;
-    border-radius: 2px;
-  }
-
-  /* ─── Search Section ─── */
-  .search-section {
-    background: var(--bg-card);
-    border-radius: var(--radius-xl);
-    padding: 32px;
-    box-shadow: var(--shadow-md);
-    border: 1px solid var(--border);
-    margin-bottom: 28px;
-  }
-
-  .search-label {
-    font-family: 'Fraunces', serif;
-    font-size: 20px;
-    font-weight: 500;
-    color: var(--text-dark);
-    margin-bottom: 4px;
-  }
-
-  .search-hint {
-    font-size: 13px;
-    color: var(--text-light);
-    margin-bottom: 16px;
-  }
-
-  .search-bar {
-    display: flex;
-    gap: 10px;
-    align-items: stretch;
-  }
-
-  .search-input {
-    flex: 1;
-    padding: 14px 20px;
-    font-size: 16px;
-    font-family: 'DM Sans', sans-serif;
-    border: 2px solid var(--border);
-    border-radius: var(--radius-md);
-    background: var(--bg-cream);
-    color: var(--text-dark);
-    transition: all 0.25s ease;
-    outline: none;
-  }
-
-  .search-input:focus {
-    border-color: var(--green-mid);
-    background: #fff;
-    box-shadow: 0 0 0 4px rgba(74,124,40,0.1);
-  }
-
-  .search-input::placeholder {
-    color: var(--text-light);
-  }
-
-  .search-btn {
-    padding: 14px 28px;
-    background: linear-gradient(135deg, var(--green-deep), var(--green-mid));
-    color: #fff;
-    border: none;
-    border-radius: var(--radius-md);
-    font-size: 15px;
-    font-weight: 600;
-    font-family: 'DM Sans', sans-serif;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    transition: all 0.25s ease;
-    white-space: nowrap;
-  }
-
-  .search-btn:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(45,80,22,0.3);
-  }
-
-  .search-footer {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-top: 12px;
-    font-size: 12px;
-    color: var(--text-light);
-  }
-
-  .tech-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    background: var(--bg-warm);
-    padding: 3px 10px;
-    border-radius: 100px;
-    font-size: 11px;
-    font-weight: 500;
-    color: var(--text-mid);
-  }
-
-  /* ─── NER Entities Strip ─── */
-  .ner-strip {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 12px 20px;
-    background: var(--green-light);
-    border-radius: var(--radius-md);
-    margin-bottom: 20px;
-    flex-wrap: wrap;
-  }
-
-  .ner-strip-label {
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--green-deep);
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
-  }
-
-  .ner-tag {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 4px 12px;
-    background: #fff;
-    border: 1px solid rgba(74,124,40,0.2);
-    border-radius: 100px;
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--green-deep);
-  }
-
-  .ner-tag .score {
-    font-size: 11px;
-    color: var(--text-light);
-    font-weight: 400;
-  }
-
-  /* ─── Match Badge ─── */
-  .match-banner {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 14px 20px;
-    background: linear-gradient(135deg, var(--green-deep), var(--green-mid));
-    border-radius: var(--radius-md);
-    margin-bottom: 20px;
-    color: #fff;
-  }
-
-  .match-banner-left {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  .match-icon {
-    width: 36px;
-    height: 36px;
-    background: rgba(255,255,255,0.15);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 18px;
-  }
-
-  .match-text h3 {
-    font-size: 16px;
-    font-weight: 600;
-  }
-
-  .match-text p {
-    font-size: 12px;
-    opacity: 0.8;
-  }
-
-  .match-percent {
-    font-family: 'Fraunces', serif;
-    font-size: 28px;
-    font-weight: 700;
-    color: var(--green-glow);
-  }
-
-  /* ─── Disease Header Card ─── */
-  .disease-header {
-    background: var(--bg-card);
-    border-radius: var(--radius-lg);
-    padding: 28px 28px 24px;
-    box-shadow: var(--shadow-sm);
-    border: 1px solid var(--border);
-    margin-bottom: 16px;
-  }
-
-  .disease-header .ita-code {
-    display: inline-block;
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--amber);
-    background: var(--amber-soft);
-    padding: 3px 10px;
-    border-radius: 100px;
-    letter-spacing: 0.5px;
-    margin-bottom: 10px;
-  }
-
-  .disease-header h2 {
-    font-family: 'Fraunces', serif;
-    font-size: 30px;
-    font-weight: 700;
-    color: var(--green-deep);
-    line-height: 1.2;
-  }
-
-  .disease-header .sanskrit {
-    font-family: 'Fraunces', serif;
-    font-size: 17px;
-    font-style: italic;
-    color: var(--terra);
-    margin-top: 2px;
-  }
-
-  .disease-header .dosha-line {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-top: 12px;
-    padding-top: 12px;
-    border-top: 1px solid var(--border);
-  }
-
-  .dosha-dot {
-    width: 8px; height: 8px;
-    border-radius: 50%;
-    flex-shrink: 0;
-  }
-
-  .dosha-dot.vata { background: #5B8DEF; }
-  .dosha-dot.kapha { background: #4CAF50; }
-  .dosha-dot.pitta { background: #FF7043; }
-
-  .dosha-text {
-    font-size: 14px;
-    color: var(--text-mid);
-    font-weight: 500;
-  }
-
-  .snomed-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-top: 10px;
-    font-size: 13px;
-    color: var(--text-light);
-  }
-
-  .snomed-code {
-    font-family: 'DM Mono', monospace, 'DM Sans';
-    background: var(--bg-warm);
-    padding: 2px 8px;
-    border-radius: 4px;
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--text-mid);
-  }
-
-  /* ─── Section Cards ─── */
-  .section-card {
-    background: var(--bg-card);
-    border-radius: var(--radius-lg);
-    padding: 24px;
-    box-shadow: var(--shadow-sm);
-    border: 1px solid var(--border);
-    margin-bottom: 12px;
-  }
-
-  .section-header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 16px;
-  }
-
-  .section-icon {
-    width: 36px;
-    height: 36px;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 18px;
-    flex-shrink: 0;
-  }
-
-  .section-icon.green { background: var(--green-light); }
-  .section-icon.amber { background: var(--amber-soft); }
-  .section-icon.terra { background: var(--terra-soft); }
-  .section-icon.red { background: var(--red-soft); }
-
-  .section-title {
-    font-family: 'Fraunces', serif;
-    font-size: 18px;
-    font-weight: 600;
-    color: var(--text-dark);
-  }
-
-  .desc-text {
-    font-size: 15px;
-    line-height: 1.65;
-    color: var(--text-mid);
-  }
-
-  .modern-corr {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    margin-top: 10px;
-    font-size: 13px;
-    color: var(--text-light);
-    background: var(--bg-warm);
-    padding: 6px 14px;
-    border-radius: var(--radius-sm);
-  }
-
-  /* ─── Tag Lists (Nidana, Rupa) ─── */
-  .tag-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-
-  .tag-item {
-    padding: 6px 14px;
-    background: var(--bg-cream);
-    border: 1px solid var(--border);
-    border-radius: 100px;
-    font-size: 13px;
-    color: var(--text-mid);
-    font-weight: 400;
-    line-height: 1.3;
-  }
-
-  .tag-item.symptom {
-    background: #FFF8F0;
-    border-color: #F0D8B8;
-    color: var(--terra);
-  }
-
-  /* ─── Ottamooli Cards ─── */
-  .remedy-grid {
-    display: grid;
-    gap: 12px;
-  }
-
-  .remedy-card {
-    background: var(--bg-cream);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
-    padding: 18px;
-    transition: all 0.2s ease;
-  }
-
-  .remedy-card:hover {
-    border-color: var(--green-soft);
-    box-shadow: var(--shadow-sm);
-  }
-
-  .remedy-name {
-    font-weight: 600;
-    font-size: 15px;
-    color: var(--green-deep);
-    margin-bottom: 2px;
-  }
-
-  .remedy-sanskrit {
-    font-family: 'Fraunces', serif;
-    font-style: italic;
-    font-size: 13px;
-    color: var(--terra);
-    margin-bottom: 10px;
-  }
-
-  .remedy-details {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 6px 16px;
-  }
-
-  .remedy-detail {
-    font-size: 13px;
-    color: var(--text-mid);
-  }
-
-  .remedy-detail-label {
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--text-light);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-
-  /* ─── Formulation Cards ─── */
-  .formulation-card {
-    display: flex;
-    align-items: flex-start;
-    gap: 14px;
-    padding: 16px;
-    background: var(--bg-cream);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
-  }
-
-  .form-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 10px;
-    background: var(--green-light);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 20px;
-    flex-shrink: 0;
-  }
-
-  .form-info h4 {
-    font-family: 'Fraunces', serif;
-    font-size: 15px;
-    font-weight: 600;
-    color: var(--text-dark);
-  }
-
-  .form-info .form-english {
-    font-size: 13px;
-    color: var(--text-light);
-    margin-bottom: 6px;
-  }
-
-  .form-meta {
-    display: flex;
-    gap: 16px;
-    font-size: 12px;
-    color: var(--text-mid);
-    flex-wrap: wrap;
-  }
-
-  .form-meta span {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-  }
-
-  .ref-badge {
-    font-size: 11px;
-    padding: 2px 8px;
-    background: var(--amber-soft);
-    border-radius: 4px;
-    color: var(--amber);
-    font-weight: 500;
-  }
-
-  /* ─── Panchakarma ─── */
-  .panchak-card {
-    padding: 16px;
-    background: var(--bg-cream);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
-    border-left: 3px solid var(--amber);
-  }
-
-  .panchak-card h4 {
-    font-size: 15px;
-    font-weight: 600;
-    color: var(--text-dark);
-    margin-bottom: 4px;
-  }
-
-  .panchak-card p {
-    font-size: 13px;
-    color: var(--text-mid);
-    margin-bottom: 4px;
-  }
-
-  .panchak-indication {
-    font-size: 12px;
-    color: var(--green-mid);
-    font-style: italic;
-  }
-
-  /* ─── Pathya / Diet ─── */
-  .diet-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-  }
-
-  .diet-col h4 {
-    font-size: 13px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: 8px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-
-  .diet-col.favor h4 { color: var(--green-mid); }
-  .diet-col.avoid h4 { color: var(--red-warn); }
-
-  .diet-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-  }
-
-  .diet-tag {
-    padding: 4px 10px;
-    border-radius: 100px;
-    font-size: 12px;
-    font-weight: 500;
-  }
-
-  .diet-tag.good {
-    background: var(--green-light);
-    color: var(--green-deep);
-  }
-
-  .diet-tag.bad {
-    background: var(--red-soft);
-    color: var(--red-warn);
-  }
-
-  .diet-note {
-    grid-column: 1 / -1;
-    padding: 10px 14px;
-    background: var(--amber-soft);
-    border-radius: var(--radius-sm);
-    font-size: 13px;
-    color: var(--terra);
-    line-height: 1.5;
-    border-left: 3px solid var(--amber);
-  }
-
-  /* ─── Lifestyle / Yoga ─── */
-  .lifestyle-list {
-    list-style: none;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-
-  .lifestyle-list li {
-    display: flex;
-    align-items: flex-start;
-    gap: 8px;
-    font-size: 14px;
-    color: var(--text-mid);
-    padding: 6px 0;
-  }
-
-  .lifestyle-list li::before {
-    content: '▸';
-    color: var(--green-soft);
-    font-weight: 700;
-    flex-shrink: 0;
-  }
-
-  .yoga-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-
-  .yoga-tag {
-    padding: 8px 16px;
-    background: linear-gradient(135deg, #F0F7E8, #E8F0DE);
-    border: 1px solid rgba(74,124,40,0.15);
-    border-radius: var(--radius-sm);
-    font-size: 13px;
-    color: var(--green-deep);
-    font-weight: 500;
-  }
-
-  /* ─── Prognosis ─── */
-  .prognosis-box {
-    padding: 16px 20px;
-    background: linear-gradient(135deg, var(--green-light), #F0F7E8);
-    border-radius: var(--radius-md);
-    font-size: 14px;
-    color: var(--text-mid);
-    line-height: 1.6;
-  }
-
-  /* ─── Warning Signs ─── */
-  .warning-list {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .warning-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 14px;
-    background: var(--red-soft);
-    border-radius: var(--radius-sm);
-    font-size: 13px;
-    color: var(--red-warn);
-    font-weight: 500;
-  }
-
-  .warning-item .warn-icon {
-    width: 20px;
-    height: 20px;
-    background: var(--red-warn);
-    color: #fff;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 11px;
-    font-weight: 700;
-    flex-shrink: 0;
-  }
-
-  /* ─── Disclaimer Footer ─── */
-  .disclaimer-bar {
-    margin-top: 20px;
-    padding: 16px 20px;
-    background: var(--bg-warm);
-    border-radius: var(--radius-md);
-    font-size: 13px;
-    color: var(--text-light);
-    text-align: center;
-    line-height: 1.5;
-    border: 1px solid var(--border);
-  }
-
-  /* ─── Two-Col Layout for smaller sections ─── */
-  .two-col {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-  }
-
-  @media (max-width: 640px) {
-    .two-col, .diet-grid, .remedy-details {
-      grid-template-columns: 1fr;
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AyurAssist — AI-Powered Ayurveda Clinical Decision Support</title>
+  <meta name="description" content="Connect modern symptoms to traditional Ayurvedic terminology using AI-powered clinical decision support">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,700;1,9..144,400&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    :root {
+      --bg-cream: #F7F3ED;
+      --bg-warm: #EDE8DF;
+      --bg-card: #FFFFFF;
+      --green-deep: #2D5016;
+      --green-mid: #4A7C28;
+      --green-soft: #6B9B3A;
+      --green-light: #E8F0DE;
+      --green-glow: #A4C639;
+      --amber: #D4A017;
+      --amber-soft: #FFF3D0;
+      --terra: #8B4513;
+      --terra-soft: #F5E6D3;
+      --red-warn: #C0392B;
+      --red-soft: #FDEDEB;
+      --text-dark: #1A1A1A;
+      --text-mid: #4A4A4A;
+      --text-light: #7A7A7A;
+      --border: #E0D8CC;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+      --shadow-md: 0 4px 16px rgba(0,0,0,0.08);
+      --shadow-lg: 0 8px 32px rgba(0,0,0,0.10);
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 20px;
+      --radius-xl: 28px;
     }
-    .header h1 { font-size: 32px; }
-    .disease-header h2 { font-size: 24px; }
-    .search-bar { flex-direction: column; }
-    .app-container { padding: 16px 12px 40px; }
-  }
 
-  /* ─── Animation ─── */
-  .fade-in {
-    animation: fadeUp 0.5s ease both;
-  }
-  @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(12px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-  .section-card:nth-child(1) { animation-delay: 0.05s; }
-  .section-card:nth-child(2) { animation-delay: 0.1s; }
-  .section-card:nth-child(3) { animation-delay: 0.15s; }
-  .section-card:nth-child(4) { animation-delay: 0.2s; }
-  .section-card:nth-child(5) { animation-delay: 0.25s; }
-  .section-card:nth-child(6) { animation-delay: 0.3s; }
-</style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg-cream);
+      color: var(--text-dark);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background:
+        radial-gradient(circle at 15% 20%, rgba(74,124,40,0.04) 0%, transparent 50%),
+        radial-gradient(circle at 85% 80%, rgba(212,160,23,0.04) 0%, transparent 50%),
+        radial-gradient(circle at 50% 50%, rgba(107,155,58,0.02) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .app-container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 24px 20px 60px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Header styles */
+    .header { text-align: center; padding: 48px 0 36px; }
+    .header-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--green-light); color: var(--green-deep);
+      font-size: 11px; font-weight: 600; letter-spacing: 1.5px;
+      text-transform: uppercase; padding: 6px 16px; border-radius: 100px;
+      margin-bottom: 16px;
+    }
+    .header h1 {
+      font-family: 'Fraunces', serif; font-size: 44px; font-weight: 700;
+      color: var(--green-deep); letter-spacing: -1px; line-height: 1.1;
+    }
+    .header h1 span { color: var(--green-soft); font-weight: 300; font-style: italic; }
+    .header-sub { font-size: 15px; color: var(--text-light); margin-top: 8px; font-weight: 400; }
+    .header-divider {
+      width: 60px; height: 3px; background: linear-gradient(90deg, var(--green-soft), var(--amber));
+      margin: 20px auto 0; border-radius: 2px;
+    }
+
+    /* Search section */
+    .search-section {
+      background: var(--bg-card); border-radius: var(--radius-xl); padding: 32px;
+      box-shadow: var(--shadow-md); border: 1px solid var(--border); margin-bottom: 28px;
+    }
+    .search-label { font-family: 'Fraunces', serif; font-size: 20px; font-weight: 500; color: var(--text-dark); margin-bottom: 4px; }
+    .search-hint { font-size: 13px; color: var(--text-light); margin-bottom: 16px; }
+    .search-bar { display: flex; gap: 10px; align-items: stretch; }
+    .search-input {
+      flex: 1; padding: 14px 20px; font-size: 16px; font-family: 'DM Sans', sans-serif;
+      border: 2px solid var(--border); border-radius: var(--radius-md); background: var(--bg-cream);
+      color: var(--text-dark); transition: all 0.25s ease; outline: none;
+    }
+    .search-input:focus { border-color: var(--green-mid); background: #fff; box-shadow: 0 0 0 4px rgba(74,124,40,0.1); }
+    .search-input::placeholder { color: var(--text-light); }
+    .search-btn {
+      padding: 14px 28px; background: linear-gradient(135deg, var(--green-deep), var(--green-mid));
+      color: #fff; border: none; border-radius: var(--radius-md); font-size: 15px; font-weight: 600;
+      font-family: 'DM Sans', sans-serif; cursor: pointer; display: flex; align-items: center;
+      gap: 8px; transition: all 0.25s ease; white-space: nowrap;
+    }
+    .search-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(45,80,22,0.3); }
+    .search-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    .search-footer { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 12px; color: var(--text-light); }
+    .tech-pill {
+      display: inline-flex; align-items: center; gap: 4px; background: var(--bg-warm);
+      padding: 3px 10px; border-radius: 100px; font-size: 11px; font-weight: 500; color: var(--text-mid);
+    }
+
+    /* Examples buttons */
+    .examples {
+      display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px;
+    }
+    .example-btn {
+      padding: 8px 16px; background: var(--green-light); color: var(--green-deep);
+      border: 1px solid rgba(74,124,40,0.3); border-radius: 20px; font-size: 14px;
+      cursor: pointer; transition: all 0.2s ease;
+    }
+    .example-btn:hover { background: var(--green-mid); color: white; }
+
+    /* Loading, Error, Results */
+    .hidden { display: none !important; }
+    .loading {
+      margin-top: 16px; padding: 20px; text-align: center; font-size: 14px; color: var(--text-light);
+      background: var(--bg-card); border-radius: var(--radius-md); border: 1px solid var(--border);
+    }
+    .error-alert {
+      margin-top: 16px; padding: 12px 16px; background: var(--red-soft); color: var(--red-warn);
+      border-radius: var(--radius-sm); font-size: 13px; border-left: 4px solid var(--red-warn);
+    }
+    .results { margin-top: 20px; }
+
+    /* JS-generated content styles */
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+    .clinical-entities-card, .medical-codes-card { background: var(--bg-card); padding: 20px; border-radius: var(--radius-lg); border: 1px solid var(--border); }
+    .clinical-entities-card h3, .medical-codes-card h3 { font-size: 16px; margin-bottom: 12px; color: var(--text-dark); }
+    .entity-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+    .entity-tag {
+      padding: 6px 12px; background: var(--green-light); color: var(--green-deep);
+      border-radius: 20px; font-size: 13px; font-weight: 500;
+    }
+    .code-line { margin-bottom: 4px; font-size: 14px; }
+    .condition-banner {
+      background: linear-gradient(135deg, var(--green-deep), var(--green-mid));
+      color: white; padding: 24px; border-radius: var(--radius-lg); text-align: center; margin-bottom: 20px;
+    }
+    .condition-banner h2 { font-family: 'Fraunces', serif; font-size: 28px; margin-bottom: 4px; }
+    .condition-banner p { font-size: 16px; opacity: 0.9; font-style: italic; }
+    .card {
+      background: var(--bg-card); border-radius: var(--radius-lg); padding: 24px;
+      box-shadow: var(--shadow-sm); border: 1px solid var(--border); margin-bottom: 16px;
+    }
+    .card h3 { font-family: 'Fraunces', serif; font-size: 18px; margin-bottom: 16px; color: var(--text-dark); }
+    .disclaimer {
+      background: var(--bg-warm); padding: 16px 20px; border-radius: var(--radius-md);
+      font-size: 13px; color: var(--text-light); border-left: 4px solid var(--amber);
+    }
+
+    @media (max-width: 640px) {
+      .search-bar { flex-direction: column; }
+      .app-container { padding: 16px 12px 40px; }
+      .header h1 { font-size: 32px; }
+      .info-grid { grid-template-columns: 1fr; }
+    }
+  </style>
 </head>
 <body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-badge">🌿 WHO ITA Standards · SNOMED CT Mapped</div>
+      <h1>Ayur<span>Assist</span></h1>
+      <p class="header-sub">AI-Powered Ayurveda Clinical Decision Support</p>
+      <div class="header-divider"></div>
+    </header>
 
-<div class="app-container">
-
-  <!-- ─── HEADER ─── -->
-  <header class="header fade-in">
-    <div class="header-badge">🌿 WHO ITA Standards · SNOMED CT Mapped</div>
-    <h1>Ayur<span>Assist</span></h1>
-    <p class="header-sub">Ayurveda–SNOMED Clinical Decision Support</p>
-    <div class="header-divider"></div>
-  </header>
-
-  <!-- ─── SEARCH ─── -->
-  <section class="search-section fade-in">
-    <p class="search-label">Describe your symptoms</p>
-    <p class="search-hint">Enter symptoms in plain language — our NLP engine will identify medical entities</p>
-    <div class="search-bar">
-      <input class="search-input" type="text" value="I am having difficulty breathing and wheezing" placeholder="e.g., headache, stomach pain, cough with fever...">
-      <button class="search-btn">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-        Analyze
-      </button>
+    <!-- Pipeline -->
+    <div class="pipeline" style="display: flex; align-items: center; justify-content: center; gap: 20px; margin: 40px 0; font-size: 14px; color: var(--text-light); flex-wrap: wrap;">
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+        <span style="font-size: 24px;">💬</span>
+        <span>Symptom Input</span>
+      </div>
+      <span style="font-size: 20px;">→</span>
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+        <span style="font-size: 24px;">🧠</span>
+        <span>Bio NER</span>
+      </div>
+      <span style="font-size: 20px;">→</span>
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+        <span style="font-size: 24px;">🔗</span>
+        <span>UMLS + ITA</span>
+      </div>
+      <span style="font-size: 20px;">→</span>
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+        <span style="font-size: 24px;">🌿</span>
+        <span>AyurParam</span>
+      </div>
     </div>
-    <div class="search-footer">
-      <span class="tech-pill">🧠 Bio_ClinicalBERT NER</span>
-      <span class="tech-pill">🤖 Qwen3-235B LLM</span>
-      <span class="tech-pill">📋 226 ITA Conditions</span>
-    </div>
-  </section>
 
-  <!-- ─── NER ENTITIES ─── -->
-  <div class="ner-strip fade-in">
-    <span class="ner-strip-label">Detected Entities</span>
-    <span class="ner-tag">breathing <span class="score">Sign_symptom · 98%</span></span>
-    <span class="ner-tag">wheezing <span class="score">Sign_symptom · 96%</span></span>
-    <span class="ner-tag">dyspnoea <span class="score">KEYWORD · 80%</span></span>
+    <!-- Search Section -->
+    <section class="search-section">
+      <p class="search-label">Describe your symptoms</p>
+      <p class="search-hint">Enter symptoms in plain language — our NLP engine will identify medical entities</p>
+      
+      <!-- Example buttons -->
+      <div class="examples" id="examples">
+        <button class="example-btn" data-value="headache">headache</button>
+        <button class="example-btn" data-value="stomach pain">stomach pain</button>
+        <button class="example-btn" data-value="fever">fever</button>
+        <button class="example-btn" data-value="loss of appetite">loss of appetite</button>
+        <button class="example-btn" data-value="cough">cough</button>
+      </div>
+
+      <div class="search-bar">
+        <input
+          class="search-input"
+          id="symptomInput"
+          type="text"
+          placeholder="e.g., I have severe headache and nausea"
+          autocomplete="off"
+        >
+        <button
+          class="search-btn"
+          id="analyzeBtn"
+          disabled
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <path d="m21 21-4.35-4.35"></path>
+          </svg>
+          Analyze
+        </button>
+      </div>
+      
+      <div class="search-footer">
+        <span class="tech-pill">🧠 scispacy en_core_sci_lg</span>
+        <span class="tech-pill">🤖 AyurParam LLM</span>
+        <span class="tech-pill">📋 226 WHO ITA Conditions</span>
+      </div>
+    </section>
+
+    <!-- Loading, Error, Results containers -->
+    <div id="loading" class="loading hidden">
+      <p>🔄 AI is analyzing your symptoms... This may take 30–90s</p>
+    </div>
+    <div id="error" class="error-alert hidden"></div>
+    <div id="results" class="results hidden"></div>
   </div>
 
-  <!-- ─── MATCH BANNER ─── -->
-  <div class="match-banner fade-in">
-    <div class="match-banner-left">
-      <div class="match-icon">✓</div>
-      <div class="match-text">
-        <h3>Ayurvedic Match Found</h3>
-        <p>Detected: dyspnoea → ITA-5.20.1 · exact match</p>
-      </div>
-    </div>
-    <div class="match-percent">100%</div>
-  </div>
-
-  <!-- ─── DISEASE HEADER ─── -->
-  <div class="disease-header fade-in">
-    <span class="ita-code">ITA-5.20.1</span>
-    <h2>Dyspnoea</h2>
-    <p class="sanskrit">śvāsaḥ</p>
-    <div class="dosha-line">
-      <span class="dosha-dot vata"></span>
-      <span class="dosha-dot kapha"></span>
-      <span class="dosha-text">Vata & Kapha — affecting Pranavaha Srotas</span>
-    </div>
-    <div class="snomed-row">
-      <span>SNOMED CT:</span>
-      <span class="snomed-code">267036007</span>
-      <span>Dyspnea</span>
-    </div>
-  </div>
-
-  <!-- ─── DESCRIPTION ─── -->
-  <div class="section-card fade-in">
-    <div class="section-header">
-      <div class="section-icon green">📋</div>
-      <span class="section-title">Description</span>
-    </div>
-    <p class="desc-text">Difficulty in breathing caused by obstruction of Prana Vayu in the respiratory channels. Ayurveda describes five types with varying severity.</p>
-    <div class="modern-corr">🏥 Bronchial Asthma / Dyspnea (ICD-10: J45, R06.0)</div>
-  </div>
-
-  <!-- ─── NIDANA & RUPA ─── -->
-  <div class="two-col">
-    <div class="section-card fade-in">
-      <div class="section-header">
-        <div class="section-icon amber">🔍</div>
-        <span class="section-title">Root Causes (Nidāna)</span>
-      </div>
-      <div class="tag-list">
-        <span class="tag-item">Exposure to cold and wind</span>
-        <span class="tag-item">Dust and smoke inhalation</span>
-        <span class="tag-item">Excessive cold food/drinks</span>
-        <span class="tag-item">Suppression of natural urges</span>
-        <span class="tag-item">Chest injuries</span>
-        <span class="tag-item">Kapha-aggravating diet</span>
-      </div>
-    </div>
-
-    <div class="section-card fade-in">
-      <div class="section-header">
-        <div class="section-icon terra">🩺</div>
-        <span class="section-title">Symptoms (Rūpa)</span>
-      </div>
-      <div class="tag-list">
-        <span class="tag-item symptom">Difficulty breathing</span>
-        <span class="tag-item symptom">Wheezing sound</span>
-        <span class="tag-item symptom">Chest tightness</span>
-        <span class="tag-item symptom">Cough with sputum</span>
-        <span class="tag-item symptom">Cannot speak long sentences</span>
-        <span class="tag-item symptom">Restlessness</span>
-      </div>
-    </div>
-  </div>
-
-  <!-- ─── OTTAMOOLI ─── -->
-  <div class="section-card fade-in">
-    <div class="section-header">
-      <div class="section-icon green">🌿</div>
-      <span class="section-title">Ottamooli — Single Medicine Remedies</span>
-    </div>
-    <div class="remedy-grid">
-      <div class="remedy-card">
-        <div class="remedy-name">Vasa (Malabar Nut)</div>
-        <div class="remedy-sanskrit">Vāsā</div>
-        <div class="remedy-details">
-          <div><span class="remedy-detail-label">Part Used</span><div class="remedy-detail">Leaves</div></div>
-          <div><span class="remedy-detail-label">Preparation</span><div class="remedy-detail">Juice with honey</div></div>
-          <div><span class="remedy-detail-label">Dosage</span><div class="remedy-detail">10–20 ml with honey</div></div>
-          <div><span class="remedy-detail-label">Timing</span><div class="remedy-detail">Twice daily</div></div>
-          <div><span class="remedy-detail-label">Duration</span><div class="remedy-detail">2–4 weeks</div></div>
-        </div>
-      </div>
-      <div class="remedy-card">
-        <div class="remedy-name">Kantakari (Yellow Berried Nightshade)</div>
-        <div class="remedy-sanskrit">Kaṇṭakārī</div>
-        <div class="remedy-details">
-          <div><span class="remedy-detail-label">Part Used</span><div class="remedy-detail">Whole plant</div></div>
-          <div><span class="remedy-detail-label">Preparation</span><div class="remedy-detail">Decoction</div></div>
-          <div><span class="remedy-detail-label">Dosage</span><div class="remedy-detail">30–50 ml</div></div>
-          <div><span class="remedy-detail-label">Timing</span><div class="remedy-detail">Twice daily</div></div>
-          <div><span class="remedy-detail-label">Duration</span><div class="remedy-detail">2–3 weeks</div></div>
-        </div>
-      </div>
-      <div class="remedy-card">
-        <div class="remedy-name">Bharangi</div>
-        <div class="remedy-sanskrit">Bhāraṅgī</div>
-        <div class="remedy-details">
-          <div><span class="remedy-detail-label">Part Used</span><div class="remedy-detail">Root</div></div>
-          <div><span class="remedy-detail-label">Preparation</span><div class="remedy-detail">Powder or decoction</div></div>
-          <div><span class="remedy-detail-label">Dosage</span><div class="remedy-detail">3–5 g powder / 30 ml decoction</div></div>
-          <div><span class="remedy-detail-label">Timing</span><div class="remedy-detail">Twice daily</div></div>
-          <div><span class="remedy-detail-label">Duration</span><div class="remedy-detail">2–4 weeks</div></div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ─── CLASSICAL FORMULATIONS ─── -->
-  <div class="section-card fade-in">
-    <div class="section-header">
-      <div class="section-icon amber">📜</div>
-      <span class="section-title">Classical Formulations</span>
-    </div>
-    <div style="display:flex;flex-direction:column;gap:10px;">
-      <div class="formulation-card">
-        <div class="form-icon">⚗️</div>
-        <div class="form-info">
-          <h4>Śvāsakuṭhāra Rasa</h4>
-          <p class="form-english">Shwas Kuthar Ras</p>
-          <div class="form-meta">
-            <span>💊 Tablet</span>
-            <span>📏 125–250 mg twice daily with honey</span>
-            <span class="ref-badge">Bhaishajya Ratnavali</span>
-          </div>
-        </div>
-      </div>
-      <div class="formulation-card">
-        <div class="form-icon">🍯</div>
-        <div class="form-info">
-          <h4>Kaṇṭakāryavaleha</h4>
-          <p class="form-english">Kantakari Avaleha</p>
-          <div class="form-meta">
-            <span>🫙 Confection</span>
-            <span>📏 5–10 g twice daily</span>
-            <span class="ref-badge">Charaka Samhita</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ─── PANCHAKARMA ─── -->
-  <div class="section-card fade-in">
-    <div class="section-header">
-      <div class="section-icon terra">🧘</div>
-      <span class="section-title">Panchakarma Treatments</span>
-    </div>
-    <div style="display:flex;flex-direction:column;gap:10px;">
-      <div class="panchak-card">
-        <h4>Vamana (Therapeutic emesis)</h4>
-        <p>Induced vomiting to expel Kapha from chest</p>
-        <span class="panchak-indication">▸ When Kapha obstruction is predominant</span>
-      </div>
-      <div class="panchak-card">
-        <h4>Dhumapana (Medicated smoking)</h4>
-        <p>Inhalation of herbal smoke</p>
-        <span class="panchak-indication">▸ Residual congestion after Vamana</span>
-      </div>
-    </div>
-  </div>
-
-  <!-- ─── PATHYA / DIET ─── -->
-  <div class="section-card fade-in">
-    <div class="section-header">
-      <div class="section-icon green">🍽️</div>
-      <span class="section-title">Pathya — Diet</span>
-    </div>
-    <div class="diet-grid">
-      <div class="diet-col favor">
-        <h4>✅ Foods to Favor</h4>
-        <div class="diet-tags">
-          <span class="diet-tag good">Warm light food</span>
-          <span class="diet-tag good">Old rice</span>
-          <span class="diet-tag good">Ginger tea</span>
-          <span class="diet-tag good">Honey</span>
-          <span class="diet-tag good">Garlic</span>
-          <span class="diet-tag good">Turmeric milk</span>
-          <span class="diet-tag good">Pepper</span>
-        </div>
-      </div>
-      <div class="diet-col avoid">
-        <h4>❌ Foods to Avoid</h4>
-        <div class="diet-tags">
-          <span class="diet-tag bad">Cold food & drinks</span>
-          <span class="diet-tag bad">Curd</span>
-          <span class="diet-tag bad">Banana</span>
-          <span class="diet-tag bad">Heavy foods</span>
-          <span class="diet-tag bad">Oily/fried food</span>
-          <span class="diet-tag bad">Black gram</span>
-        </div>
-      </div>
-      <div class="diet-note">
-        💡 Eat warm, light, freshly cooked food. Avoid eating to full capacity. Dinner should be early and light.
-      </div>
-    </div>
-  </div>
-
-  <!-- ─── LIFESTYLE & YOGA ─── -->
-  <div class="two-col">
-    <div class="section-card fade-in">
-      <div class="section-header">
-        <div class="section-icon green">🏃</div>
-        <span class="section-title">Lifestyle (Vihāra)</span>
-      </div>
-      <ul class="lifestyle-list">
-        <li>Avoid cold exposure</li>
-        <li>Keep chest warm</li>
-        <li>Avoid dust and smoke</li>
-        <li>Sleep with head elevated</li>
-        <li>Avoid daytime sleep</li>
-      </ul>
-    </div>
-
-    <div class="section-card fade-in">
-      <div class="section-header">
-        <div class="section-icon amber">🧘‍♀️</div>
-        <span class="section-title">Yoga & Exercises</span>
-      </div>
-      <div class="yoga-grid">
-        <span class="yoga-tag">Anulom Vilom Pranayama</span>
-        <span class="yoga-tag">Bhastrika (mild)</span>
-        <span class="yoga-tag">Sukhasana + deep breathing</span>
-        <span class="yoga-tag">Matsyasana (Fish pose)</span>
-      </div>
-    </div>
-  </div>
-
-  <!-- ─── PROGNOSIS ─── -->
-  <div class="section-card fade-in">
-    <div class="section-header">
-      <div class="section-icon green">📊</div>
-      <span class="section-title">Prognosis</span>
-    </div>
-    <div class="prognosis-box">
-      Tamaka Shvasa (bronchial asthma) is <strong>Yapya</strong> (manageable); Maha Shvasa is <strong>Asadhya</strong> (difficult to cure).
-    </div>
-  </div>
-
-  <!-- ─── WARNING SIGNS ─── -->
-  <div class="section-card fade-in">
-    <div class="section-header">
-      <div class="section-icon red">⚠️</div>
-      <span class="section-title">Warning Signs</span>
-    </div>
-    <div class="warning-list">
-      <div class="warning-item"><span class="warn-icon">!</span> Severe breathlessness at rest</div>
-      <div class="warning-item"><span class="warn-icon">!</span> Blue discoloration of lips/nails</div>
-      <div class="warning-item"><span class="warn-icon">!</span> Unable to speak</div>
-      <div class="warning-item"><span class="warn-icon">!</span> Confusion due to breathlessness</div>
-    </div>
-  </div>
-
-  <!-- ─── DISCLAIMER ─── -->
-  <div class="disclaimer-bar fade-in">
-    ⚕️ This information is for <strong>educational purposes only</strong>. Always consult a qualified Ayurvedic practitioner before starting any treatment.
-    <br><span style="font-size:11px;margin-top:4px;display:inline-block;">AyurAssist v2.0 · NLP + LLM Powered Clinical Decision Support · WHO ITA · SNOMED CT</span>
-  </div>
-
-</div>
+  <script src="app.js"></script>
 </body>
 </html>
