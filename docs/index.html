@@ -1,3 +1,6 @@
+Here's the complete corrected code with API integration:
+
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -806,6 +809,9 @@
   </div>
 
   <script>
+    // Point this to your Modal deployment URL
+    const API_BASE = 'https://aravindkv28--ayurparam-service-fastapi-app.modal.run';
+
     // DOM Elements
     const input = document.getElementById('symptomInput');
     const analyzeBtn = document.getElementById('analyzeBtn');
@@ -817,6 +823,9 @@
     const matchBanner = document.getElementById('matchBanner');
     const diseaseHeader = document.getElementById('diseaseHeader');
     const disclaimerFooter = document.getElementById('disclaimerFooter');
+
+    // Wake up GPU container while the user types (fire-and-forget)
+    fetch(API_BASE + '/warmup').catch(() => {});
 
     // Enable/disable button based on input
     input.addEventListener('input', () => {
@@ -848,6 +857,9 @@
       if (!symptoms) return;
 
       // Show loading, hide other sections
+      analyzeBtn.disabled = true;
+      analyzeBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg> Analyzing...';
+      
       loading.classList.remove('hidden');
       error.classList.add('hidden');
       results.classList.add('hidden');
@@ -855,23 +867,47 @@
       matchBanner.classList.add('hidden');
       diseaseHeader.classList.add('hidden');
       disclaimerFooter.classList.add('hidden');
+      
+      // Clear previous results
+      results.innerHTML = '';
+
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 120000); // 120s timeout
 
       try {
-        // Show mock results for demo (replace with actual API call)
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        
-        // For demo, show cough layout for "cough", headache for "headache", etc.
-        if (symptoms.toLowerCase().includes('cough')) {
-          displayCoughResults(symptoms);
-        } else if (symptoms.toLowerCase().includes('headache')) {
-          displayHeadacheResults(symptoms);
-        } else {
-          displayGenericResults(symptoms);
+        // ✅ ACTUAL API CALL
+        console.log('Calling API with symptoms:', symptoms);
+        const response = await fetch(API_BASE, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: symptoms }),
+          signal: controller.signal
+        });
+
+        clearTimeout(timeout);
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
+
+        const data = await response.json();
+        console.log('API Response:', data);
+        
+        // Process and display the API data
+        displayResultsFromAPI(data);
         
       } catch (err) {
-        showError('An error occurred. Please try again.');
+        const errorMsg = err.name === 'AbortError' 
+          ? 'Request timeout. AI is processing, please try again.' 
+          : `Cannot connect to backend: ${err.message}`;
+        showError('⚠️ ' + errorMsg);
+        
+        // Fallback to demo if API fails
+        console.log('API failed, showing demo:', err);
+        fallbackToDemo(symptoms);
       } finally {
+        analyzeBtn.disabled = false;
+        analyzeBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg> Analyze';
         loading.classList.add('hidden');
       }
     }
@@ -881,7 +917,7 @@
       error.classList.remove('hidden');
     }
 
-    function displayCoughResults(symptoms) {
+    function fallbackToDemo(symptoms) {
       // Show all sections
       nerStrip.classList.remove('hidden');
       matchBanner.classList.remove('hidden');
@@ -892,75 +928,46 @@
       // Fill NER strip
       nerStrip.innerHTML = `
         <span class="ner-strip-label">Detected Entities</span>
-        <span class="ner-tag">cough <span class="score">Sign_symptom · 98%</span></span>
-        <span class="ner-tag">phlegm <span class="score">Sign_symptom · 92%</span></span>
-        <span class="ner-tag">respiratory distress <span class="score">Sign_symptom · 85%</span></span>
+        <span class="ner-tag">${escapeHTML(symptoms.split(' ')[0])} <span class="score">Sign_symptom · 98%</span></span>
+        <span class="ner-tag">symptom <span class="score">Sign_symptom · 92%</span></span>
       `;
       
       // Fill match banner
-      document.getElementById('matchDetails').textContent = 'Detected: cough → ITA-5.10.1 · exact match';
+      document.getElementById('matchDetails').textContent = `Detected: ${escapeHTML(symptoms)} → ITA-demo`;
       document.getElementById('matchPercent').textContent = '100%';
       
       // Fill disease header
-      document.getElementById('itaCode').textContent = 'ITA-5.10.1';
-      document.getElementById('diseaseName').textContent = 'Cough';
-      document.getElementById('sanskritName').textContent = 'Kāsaḥ';
+      document.getElementById('itaCode').textContent = 'ITA-DEMO';
+      document.getElementById('diseaseName').textContent = escapeHTML(symptoms.charAt(0).toUpperCase() + symptoms.slice(1));
+      document.getElementById('sanskritName').textContent = 'Demo Condition';
       
-      // Add dosha dots and text
+      // Add dosha dots
       const doshaLine = document.querySelector('.dosha-line');
       doshaLine.innerHTML = `
         <span class="dosha-dot vata"></span>
         <span class="dosha-dot pitta"></span>
-        <span class="dosha-dot kapha"></span>
-        <span class="dosha-text">Vata, Pitta & Kapha imbalance — affecting Pranavaha Srotas</span>
+        <span class="dosha-text">Vata & Pitta imbalance — requires assessment</span>
       `;
       
-      document.getElementById('snomedCode').textContent = '49727002';
-      document.getElementById('snomedName').textContent = 'Cough';
+      document.getElementById('snomedCode').textContent = '00000000';
+      document.getElementById('snomedName').textContent = escapeHTML(symptoms);
       
-      // Create all the section cards
+      // Show demo message
       results.innerHTML = `
-        <!-- Description -->
         <div class="section-card fade-in">
           <div class="section-header">
-            <div class="section-icon green">📋</div>
-            <span class="section-title">Description</span>
+            <div class="section-icon green">⚠️</div>
+            <span class="section-title">Demo Mode</span>
           </div>
-          <p class="desc-text">Cough (Kāsa) is a protective reflex to clear the respiratory tract. Ayurveda classifies cough based on dosha predominance: Vataja (dry cough), Pittaja (yellow sputum), Kaphaja (white sputum), or Sannipātaja (all three).</p>
-          <div class="modern-corr">🏥 Chronic bronchitis, Asthma, Bronchiectasis (ICD-10: J41-J44, J45)</div>
+          <p class="desc-text">You entered: <strong>${escapeHTML(symptoms)}</strong></p>
+          <p class="desc-text">This is a demo display. The API connection failed, so we're showing sample data.</p>
+          <p class="desc-text">Check your browser console for API error details.</p>
+          <div class="modern-corr">🏥 Please ensure your Modal deployment is running</div>
         </div>
+      `;
+    }
 
-        <!-- Nidana & Rupa -->
-        <div class="two-col">
-          <div class="section-card fade-in">
-            <div class="section-header">
-              <div class="section-icon amber">🔍</div>
-              <span class="section-title">Root Causes (Nidāna)</span>
-            </div>
-            <div class="tag-list">
-              <span class="tag-item">Exposure to dust, smoke, cold wind</span>
-              <span class="tag-item">Consumption of cold food/drinks</span>
-              <span class="tag-item">Kapha-aggravating foods</span>
-              <span class="tag-item">Suppression of natural urges</span>
-              <span class="tag-item">Respiratory infections</span>
-              <span class="tag-item">Allergens and pollutants</span>
-            </div>
-          </div>
-
-          <div class="section-card fade-in">
-            <div class="section-header">
-              <div class="section-icon terra">🩺</div>
-              <span class="section-title">Symptoms (Rūpa)</span>
-            </div>
-            <div class="tag-list">
-              <span class="tag-item symptom">Dry cough (Vata)</span>
-              <span class="tag-item symptom">Productive cough with yellow sputum (Pitta)</span>
-              <span class="tag-item symptom">White, thick sputum (Kapha)</span>
-              <span class="tag-item symptom">Chest pain</span>
-              <span class="tag-item symptom">Hoarseness of voice</span>
-              <span class="tag-item symptom">Difficulty breathing</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Ottamooli — Single
+    function displayResultsFromAPI(data) {
+      // Extract data from API response
+      const treatment = data.results?.[0]?.treatment_info || {};
+      const resp = treatment.ayurparam_responses || {};
