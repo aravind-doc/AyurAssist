@@ -12,7 +12,7 @@ from config import (
     CPU_TIMEOUT, CPU_SCALEDOWN_WINDOW,
     LLM_MODEL_ID, LLM_MAX_MODEL_LEN, LLM_MAX_TOKENS,
     LLM_TEMPERATURE, LLM_TOP_P, LLM_TOP_K, LLM_REPETITION_PENALTY, LLM_DTYPE,
-    NER_MODEL_ID, NER_AGGREGATION_STRATEGY,
+    NER_MODEL_NAME,
     CSV_SOURCE_PATH, CSV_CONTAINER_PATH, MODEL_CACHE_DIR, VOLUME_MOUNT_PATH,
     UMLS_SEARCH_URL, UMLS_ATOMS_URL_TEMPLATE, UMLS_REQUEST_TIMEOUT,
     FUZZY_MATCH_THRESHOLD, PYTHON_VERSION,
@@ -26,13 +26,10 @@ app = modal.App(MODAL_APP_NAME)
 cpu_image = (
     modal.Image.debian_slim(python_version=PYTHON_VERSION)
     .pip_install(
-        "numpy==1.24.3",
-        "transformers==4.40.0",
-        "torch==2.1.0",
-        "accelerate==0.27.0",
+        "scispacy==0.5.5",
+        "https://s3-us-west-2.amazonaws.com/ai2-s2-scispacy/releases/v0.5.4/en_core_sci_lg-0.5.4.tar.gz",
         "fastapi[standard]==0.109.0",
-        "huggingface_hub==0.20.0",
-        "requests==2.31.0"
+        "requests==2.31.0",
     )
     .add_local_file(CSV_SOURCE_PATH, CSV_CONTAINER_PATH)
     .add_local_file("config.py", "/root/config.py")
@@ -169,8 +166,9 @@ def _fuzzy_csv_lookup(term_lookup, keyword):
     return best_match if best_score >= FUZZY_MATCH_THRESHOLD else None
 
 
-def _lookup_umls(api_key, keyword):
-    """Two-step UMLS: search -> CUI, then CUI atoms -> SNOMED code."""
+def _lookup_umls(api_key, keyword, search_sabs=None):
+    """Two-step UMLS: search -> CUI, then CUI atoms -> SNOMED code.
+    If search_sabs is set (e.g. 'ICD10CM'), only match terms from that source."""
     import requests
 
     umls_cui = "N/A"
@@ -180,9 +178,12 @@ def _lookup_umls(api_key, keyword):
 
     # Step 1: keyword -> CUI
     try:
+        params = {"string": keyword, "apiKey": api_key, "returnIdType": "concept"}
+        if search_sabs:
+            params["sabs"] = search_sabs
         r = requests.get(
             UMLS_SEARCH_URL,
-            params={"string": keyword, "apiKey": api_key, "returnIdType": "concept"},
+            params=params,
             timeout=UMLS_REQUEST_TIMEOUT,
         )
         if r.status_code == 200:
@@ -296,15 +297,10 @@ async def lifespan(web_app):
 
     # Load NER model in a thread so it doesn't block the event loop
     # (allows the GPU warmup coroutine above to make progress)
-    from transformers import pipeline as hf_pipeline
+    import spacy
 
     def _load_ner():
-        return hf_pipeline(
-            "ner",
-            model=NER_MODEL_ID,
-            aggregation_strategy=NER_AGGREGATION_STRATEGY,
-            device=-1,
-        )
+        return spacy.load(NER_MODEL_NAME)
 
     web_app.state.ner = await asyncio.to_thread(_load_ner)
 
@@ -374,31 +370,59 @@ def fastapi_app():
             entities = []
             keyword = user_input
             try:
-                raw_res = await asyncio.to_thread(st.ner, user_input)
-                for ent in raw_res:
+                doc = await asyncio.to_thread(st.ner, user_input)
+                for ent in doc.ents:
                     entities.append({
-                        "word": str(ent["word"]),
-                        "score": float(ent["score"]),
-                        "entity_group": str(ent.get("entity_group", "")),
+                        "word": ent.text,
+                        "score": 1.0,
+                        "entity_group": ent.label_,
                     })
-                if entities:
-                    priority = [e for e in entities if e["entity_group"] in ("Disease", "Symptom")]
-                    best = sorted(priority or entities, key=lambda x: x["score"], reverse=True)[0]
-                    keyword = best["word"]
             except Exception as e:
                 print(f"NER error: {e}")
 
-            # 2. UMLS (network I/O -- run in thread)
-            umls_cui, snomed_code = await asyncio.to_thread(
-                _lookup_umls, st.umls_api_key, keyword
-            )
-
-            # 3. CSV lookup (fast, in-process)
+            # 2. Pick keyword: CSV match first, then UMLS (diseases only)
+            umls_cui, snomed_code = "N/A", "N/A"
             csv_data = None
-            if snomed_code != "N/A":
-                csv_data = st.snomed_lookup.get(snomed_code)
+
+            if entities:
+                unique_words = list(dict.fromkeys(e["word"] for e in entities))
+
+                # 2a. Check each entity against our Ayurveda CSV
+                for word in unique_words:
+                    match = _fuzzy_csv_lookup(st.term_lookup, word)
+                    if match:
+                        keyword = word
+                        csv_data = match
+                        snomed_code = match.get("SNOMED_Code", "N/A").strip() or "N/A"
+                        break
+
+                # 2b. No CSV hit — try UMLS restricted to ICD-10 (diseases only)
+                if csv_data is None:
+                    umls_results = await asyncio.gather(*(
+                        asyncio.to_thread(
+                            _lookup_umls, st.umls_api_key, w, search_sabs="ICD10CM"
+                        )
+                        for w in unique_words
+                    ))
+                    for word, (cui, snomed) in zip(unique_words, umls_results):
+                        if cui != "N/A":
+                            keyword = word
+                            umls_cui = cui
+                            snomed_code = snomed
+                            break
+
+            # 2c. Fallback — try raw input against UMLS (diseases only)
+            if umls_cui == "N/A" and csv_data is None:
+                umls_cui, snomed_code = await asyncio.to_thread(
+                    _lookup_umls, st.umls_api_key, keyword, search_sabs="ICD10CM"
+                )
+
+            # 3. CSV lookup from SNOMED (if UMLS path found one)
             if csv_data is None:
-                csv_data = _fuzzy_csv_lookup(st.term_lookup, keyword)
+                if snomed_code != "N/A":
+                    csv_data = st.snomed_lookup.get(snomed_code)
+                if csv_data is None:
+                    csv_data = _fuzzy_csv_lookup(st.term_lookup, keyword)
 
             # 4. LLM generation — 6 focused questions (matching notebook approach)
             sanskrit = (csv_data.get("Sanskrit_IAST", "") if csv_data else "") or ""

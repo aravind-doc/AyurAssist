@@ -32,8 +32,7 @@ LLM_TOP_K = 50
 LLM_REPETITION_PENALTY = 1.1
 LLM_DTYPE = "half"
 
-NER_MODEL_ID = "d4data/biomedical-ner-all"
-NER_AGGREGATION_STRATEGY = "simple"
+NER_MODEL_NAME = "en_core_sci_lg"
 
 # ── Data ─────────────────────────────────────────────────────
 CSV_SOURCE_PATH = "ayurveda_snomed_mapping.csv"
