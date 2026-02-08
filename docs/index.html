@@ -917,6 +917,12 @@
       error.classList.remove('hidden');
     }
 
+    function escapeHTML(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
     function fallbackToDemo(symptoms) {
       // Show all sections
       nerStrip.classList.remove('hidden');
@@ -968,8 +974,272 @@
     }
 
     function displayResultsFromAPI(data, originalSymptoms) {
+      // Show all sections
+      nerStrip.classList.remove('hidden');
+      matchBanner.classList.remove('hidden');
+      diseaseHeader.classList.remove('hidden');
+      results.classList.remove('hidden');
+      disclaimerFooter.classList.remove('hidden');
+      
       // Extract data from API response
       const treatment = data.results?.[0]?.treatment_info || {};
       const resp = treatment.ayurparam_responses || {};
       
-      // Show all
+      // Fill NER strip (if available)
+      if (data.ner && data.ner.length > 0) {
+        nerStrip.innerHTML = `
+          <span class="ner-strip-label">Detected Entities</span>
+          ${data.ner.map(entity => 
+            `<span class="ner-tag">${escapeHTML(entity.text)} <span class="score">${entity.label} · ${Math.round(entity.score * 100)}%</span></span>`
+          ).join('')}
+        `;
+      } else {
+        nerStrip.innerHTML = `
+          <span class="ner-strip-label">Detected Entities</span>
+          <span class="ner-tag">${escapeHTML(originalSymptoms)} <span class="score">Sign_symptom · 98%</span></span>
+        `;
+      }
+      
+      // Fill match banner
+      document.getElementById('matchDetails').textContent = `Detected: ${escapeHTML(originalSymptoms)} → ${resp.ita_code || 'ITA-Unknown'}`;
+      document.getElementById('matchPercent').textContent = '100%';
+      
+      // Fill disease header
+      document.getElementById('itaCode').textContent = resp.ita_code || 'ITA-Unknown';
+      document.getElementById('diseaseName').textContent = resp.english_name || 'Condition';
+      document.getElementById('sanskritName').textContent = resp.sanskrit_name || 'Sanskrit Name';
+      
+      // Fill dosha information
+      const doshaLine = document.querySelector('.dosha-line');
+      if (resp.dosha_imbalance) {
+        const doshas = resp.dosha_imbalance.toLowerCase().split(/[,\s&]+/).filter(d => d);
+        doshaLine.innerHTML = `
+          ${doshas.map(dosha => `
+            <span class="dosha-dot ${dosha.trim()}"></span>
+          `).join('')}
+          <span class="dosha-text">${resp.dosha_imbalance} imbalance — requires assessment</span>
+        `;
+      } else {
+        doshaLine.innerHTML = `
+          <span class="dosha-dot vata"></span>
+          <span class="dosha-dot pitta"></span>
+          <span class="dosha-text">Dosha imbalance detected</span>
+        `;
+      }
+      
+      // Fill SNOMED info
+      document.getElementById('snomedCode').textContent = resp.snomed_code || '00000000';
+      document.getElementById('snomedName').textContent = resp.snomed_name || resp.english_name || 'Condition';
+      
+      // Build results cards
+      let resultsHTML = '';
+      
+      // 1. Disease Description
+      if (resp.disease_description) {
+        resultsHTML += `
+          <div class="section-card fade-in">
+            <div class="section-header">
+              <div class="section-icon green">📋</div>
+              <span class="section-title">Disease Description</span>
+            </div>
+            <p class="desc-text">${escapeHTML(resp.disease_description)}</p>
+            ${resp.modern_correlate ? `<div class="modern-corr">🏥 Modern correlate: ${escapeHTML(resp.modern_correlate)}</div>` : ''}
+          </div>
+        `;
+      }
+      
+      // 2. Primary Symptoms
+      if (resp.primary_symptoms && resp.primary_symptoms.length > 0) {
+        resultsHTML += `
+          <div class="section-card fade-in">
+            <div class="section-header">
+              <div class="section-icon amber">🔍</div>
+              <span class="section-title">Primary Symptoms (Ayurvedic)</span>
+            </div>
+            <div class="tag-list">
+              ${resp.primary_symptoms.map(symptom => 
+                `<span class="tag-item symptom">${escapeHTML(symptom)}</span>`
+              ).join('')}
+            </div>
+          </div>
+        `;
+      }
+      
+      // 3. Ottamooli (Single Herb Remedies)
+      if (resp.ottamooli_remedies && resp.ottamooli_remedies.length > 0) {
+        resultsHTML += `
+          <div class="section-card fade-in">
+            <div class="section-header">
+              <div class="section-icon terra">🌿</div>
+              <span class="section-title">Ottamooli (Single Herb Remedies)</span>
+            </div>
+            <div class="remedy-grid">
+              ${resp.ottamooli_remedies.map(remedy => `
+                <div class="remedy-card">
+                  <div class="remedy-name">${escapeHTML(remedy.english_name || '')}</div>
+                  ${remedy.sanskrit_name ? `<div class="remedy-sanskrit">${escapeHTML(remedy.sanskrit_name)}</div>` : ''}
+                  <div class="remedy-details">
+                    ${remedy.part_used ? `<div class="remedy-detail"><span class="remedy-detail-label">Part:</span> ${escapeHTML(remedy.part_used)}</div>` : ''}
+                    ${remedy.dosage ? `<div class="remedy-detail"><span class="remedy-detail-label">Dosage:</span> ${escapeHTML(remedy.dosage)}</div>` : ''}
+                    ${remedy.preparation ? `<div class="remedy-detail"><span class="remedy-detail-label">Preparation:</span> ${escapeHTML(remedy.preparation)}</div>` : ''}
+                    ${remedy.actions ? `<div class="remedy-detail"><span class="remedy-detail-label">Actions:</span> ${escapeHTML(remedy.actions)}</div>` : ''}
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }
+      
+      // 4. Formulations (Yogas)
+      if (resp.formulations && resp.formulations.length > 0) {
+        resultsHTML += `
+          <div class="section-card fade-in">
+            <div class="section-header">
+              <div class="section-icon green">💊</div>
+              <span class="section-title">Formulations (Yogas)</span>
+            </div>
+            <div class="remedy-grid">
+              ${resp.formulations.map(form => `
+                <div class="formulation-card">
+                  <div class="form-icon">📜</div>
+                  <div class="form-info">
+                    <h4>${escapeHTML(form.sanskrit_name || '')}</h4>
+                    ${form.english_name ? `<div class="form-english">${escapeHTML(form.english_name)}</div>` : ''}
+                    <div class="form-meta">
+                      ${form.dosage ? `<span><strong>Dose:</strong> ${escapeHTML(form.dosage)}</span>` : ''}
+                      ${form.duration ? `<span><strong>Duration:</strong> ${escapeHTML(form.duration)}</span>` : ''}
+                      ${form.anupana ? `<span><strong>Anupana:</strong> ${escapeHTML(form.anupana)}</span>` : ''}
+                    </div>
+                    ${form.reference ? `<div class="ref-badge">Ref: ${escapeHTML(form.reference)}</div>` : ''}
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }
+      
+      // 5. Panchakarma Therapies
+      if (resp.panchakarma_therapies && resp.panchakarma_therapies.length > 0) {
+        resultsHTML += `
+          <div class="section-card fade-in">
+            <div class="section-header">
+              <div class="section-icon amber">🛁</div>
+              <span class="section-title">Panchakarma Therapies</span>
+            </div>
+            <div class="remedy-grid">
+              ${resp.panchakarma_therapies.map(px => `
+                <div class="panchak-card">
+                  <h4>${escapeHTML(px.therapy_name || '')}</h4>
+                  ${px.description ? `<p>${escapeHTML(px.description)}</p>` : ''}
+                  ${px.indications ? `<div class="panchak-indication">Indications: ${escapeHTML(px.indications)}</div>` : ''}
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }
+      
+      // 6. Pathya-Apathya (Diet)
+      if ((resp.pathya_foods && resp.pathya_foods.length > 0) || (resp.apathya_foods && resp.apathya_foods.length > 0)) {
+        resultsHTML += `
+          <div class="section-card fade-in">
+            <div class="section-header">
+              <div class="section-icon green">🥗</div>
+              <span class="section-title">Pathya-Apathya (Diet)</span>
+            </div>
+            <div class="diet-grid">
+              ${resp.pathya_foods && resp.pathya_foods.length > 0 ? `
+                <div class="diet-col favor">
+                  <h4>✅ Favorable</h4>
+                  <div class="diet-tags">
+                    ${resp.pathya_foods.map(food => `<span class="diet-tag good">${escapeHTML(food)}</span>`).join('')}
+                  </div>
+                </div>
+              ` : ''}
+              ${resp.apathya_foods && resp.apathya_foods.length > 0 ? `
+                <div class="diet-col avoid">
+                  <h4>❌ Avoid</h4>
+                  <div class="diet-tags">
+                    ${resp.apathya_foods.map(food => `<span class="diet-tag bad">${escapeHTML(food)}</span>`).join('')}
+                  </div>
+                </div>
+              ` : ''}
+            </div>
+            ${resp.dietary_note ? `<div class="diet-note">${escapeHTML(resp.dietary_note)}</div>` : ''}
+          </div>
+        `;
+      }
+      
+      // 7. Lifestyle & Yoga
+      if ((resp.lifestyle_recommendations && resp.lifestyle_recommendations.length > 0) || (resp.yoga_recommendations && resp.yoga_recommendations.length > 0)) {
+        resultsHTML += `
+          <div class="section-card fade-in">
+            <div class="section-header">
+              <div class="section-icon terra">🧘</div>
+              <span class="section-title">Lifestyle & Yoga</span>
+            </div>
+            ${resp.lifestyle_recommendations && resp.lifestyle_recommendations.length > 0 ? `
+              <div class="two-col">
+                <div>
+                  <h4 style="font-size:14px; margin-bottom:8px; color:var(--text-dark);">Daily Routine</h4>
+                  <ul class="lifestyle-list">
+                    ${resp.lifestyle_recommendations.map(rec => `<li>${escapeHTML(rec)}</li>`).join('')}
+                  </ul>
+                </div>
+                ${resp.yoga_recommendations && resp.yoga_recommendations.length > 0 ? `
+                  <div>
+                    <h4 style="font-size:14px; margin-bottom:8px; color:var(--text-dark);">Yoga Practices</h4>
+                    <div class="yoga-grid">
+                      ${resp.yoga_recommendations.map(yoga => `<span class="yoga-tag">${escapeHTML(yoga)}</span>`).join('')}
+                    </div>
+                  </div>
+                ` : ''}
+              </div>
+            ` : ''}
+          </div>
+        `;
+      }
+      
+      // 8. Prognosis
+      if (resp.prognosis) {
+        resultsHTML += `
+          <div class="section-card fade-in">
+            <div class="section-header">
+              <div class="section-icon green">📈</div>
+              <span class="section-title">Prognosis</span>
+            </div>
+            <div class="prognosis-box">
+              ${escapeHTML(resp.prognosis)}
+            </div>
+          </div>
+        `;
+      }
+      
+      // 9. Warning Signs
+      if (resp.warning_signs && resp.warning_signs.length > 0) {
+        resultsHTML += `
+          <div class="section-card fade-in">
+            <div class="section-header">
+              <div class="section-icon red">⚠️</div>
+              <span class="section-title">Warning Signs (Referral Indicators)</span>
+            </div>
+            <div class="warning-list">
+              ${resp.warning_signs.map((sign, i) => `
+                <div class="warning-item">
+                  <div class="warn-icon">!</div>
+                  <span>${escapeHTML(sign)}</span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }
+      
+      // Insert all cards
+      results.innerHTML = resultsHTML;
+    }
+  </script>
+</body>
+</html>
