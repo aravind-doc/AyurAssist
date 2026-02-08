@@ -24,7 +24,7 @@ CPU_SCALEDOWN_WINDOW = 300     # seconds idle before shutdown
 
 # ── Models ───────────────────────────────────────────────────
 LLM_MODEL_ID = "bharatgenai/AyurParam"
-LLM_MAX_MODEL_LEN = 4096
+LLM_MAX_MODEL_LEN = 2048
 LLM_MAX_TOKENS = 2000
 LLM_TEMPERATURE = 0.3
 LLM_TOP_P = 0.9

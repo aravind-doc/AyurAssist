@@ -41,8 +41,11 @@ cpu_image = (
 gpu_image = (
     modal.Image.debian_slim(python_version=PYTHON_VERSION)
     .pip_install(
-        "vllm",
-        "huggingface_hub==0.20.0",
+        "torch==2.1.0",
+        "numpy==1.24.3",
+        "transformers==4.46.0",
+        "accelerate==0.34.0",
+        "huggingface_hub==0.25.0",
         # Needed because Modal loads the full module in every container
         "fastapi[standard]==0.109.0",
         "requests==2.31.0",
@@ -54,7 +57,7 @@ volume = modal.Volume.from_name(MODAL_VOLUME_NAME, create_if_missing=True)
 
 
 # ===================================================================
-# GPU Tier: vLLM engine for AyurParam (only LLM inference lives here)
+# GPU Tier: Transformers engine for AyurParam (only LLM inference)
 # ===================================================================
 
 @app.cls(
@@ -69,31 +72,45 @@ volume = modal.Volume.from_name(MODAL_VOLUME_NAME, create_if_missing=True)
 class LLMEngine:
     @modal.enter()
     def setup(self):
-        from vllm import LLM, SamplingParams
+        import torch
+        from transformers import AutoTokenizer, AutoModelForCausalLM
         from huggingface_hub import login
 
         hf_token = os.environ.get("HF_TOKEN")
         if hf_token:
             login(token=hf_token)
 
-        self.llm = LLM(
-            model=LLM_MODEL_ID,
-            dtype=LLM_DTYPE,
-            max_model_len=LLM_MAX_MODEL_LEN,
-            download_dir=MODEL_CACHE_DIR,
+        self.tokenizer = AutoTokenizer.from_pretrained(
+            LLM_MODEL_ID,
+            use_fast=False,
+            trust_remote_code=False,
+            cache_dir=MODEL_CACHE_DIR,
+        )
+        self.model = AutoModelForCausalLM.from_pretrained(
+            LLM_MODEL_ID,
+            torch_dtype=torch.float16,
             trust_remote_code=True,
+            cache_dir=MODEL_CACHE_DIR,
+            device_map="auto",
         )
-        self.sampling_params = SamplingParams(
-            max_tokens=LLM_MAX_TOKENS,
-            temperature=LLM_TEMPERATURE,
-            top_p=LLM_TOP_P,
-        )
-        print("LLM engine ready (vLLM).")
+        print("LLM engine ready (transformers).")
 
     @modal.method()
     def generate(self, prompt: str) -> str:
-        outputs = self.llm.generate([prompt], self.sampling_params)
-        return outputs[0].outputs[0].text
+        import torch
+
+        inputs = self.tokenizer(prompt, return_tensors="pt").to(self.model.device)
+        with torch.no_grad():
+            output_ids = self.model.generate(
+                **inputs,
+                max_new_tokens=LLM_MAX_TOKENS,
+                temperature=LLM_TEMPERATURE,
+                top_p=LLM_TOP_P,
+                do_sample=True,
+            )
+        # Decode only the newly generated tokens (skip the prompt)
+        new_tokens = output_ids[0][inputs["input_ids"].shape[1]:]
+        return self.tokenizer.decode(new_tokens, skip_special_tokens=True)
 
     @modal.method()
     def warmup(self) -> dict:
@@ -354,7 +371,7 @@ def fastapi_app():
             if csv_data is None:
                 csv_data = _fuzzy_csv_lookup(st.term_lookup, keyword)
 
-            # 4. LLM generation (remote GPU call via vLLM)
+            # 4. LLM generation (remote GPU call)
             prompt = _build_prompt(keyword, snomed_code, csv_data)
             try:
                 raw_text = await LLMEngine().generate.remote.aio(prompt)
