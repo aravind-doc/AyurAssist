@@ -6,7 +6,6 @@
   <title>AyurAssist — AI-Powered Ayurveda Clinical Decision Support</title>
   <meta name="description" content="Connect modern symptoms to traditional Ayurvedic terminology using AI-powered clinical decision support">
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,700;1,9..144,400&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
   <style>
     :root {
       --bg-cream: #F7F3ED;
@@ -136,39 +135,578 @@
       margin-top: 16px; padding: 12px 16px; background: var(--red-soft); color: var(--red-warn);
       border-radius: var(--radius-sm); font-size: 13px; border-left: 4px solid var(--red-warn);
     }
-    .results { margin-top: 20px; }
 
-    /* JS-generated content styles */
-    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
-    .clinical-entities-card, .medical-codes-card { background: var(--bg-card); padding: 20px; border-radius: var(--radius-lg); border: 1px solid var(--border); }
-    .clinical-entities-card h3, .medical-codes-card h3 { font-size: 16px; margin-bottom: 12px; color: var(--text-dark); }
-    .entity-tags { display: flex; flex-wrap: wrap; gap: 8px; }
-    .entity-tag {
-      padding: 6px 12px; background: var(--green-light); color: var(--green-deep);
-      border-radius: 20px; font-size: 13px; font-weight: 500;
+    /* New Layout Components */
+    /* NER Entities Strip */
+    .ner-strip {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 20px;
+      background: var(--green-light);
+      border-radius: var(--radius-md);
+      margin-bottom: 20px;
+      flex-wrap: wrap;
     }
-    .code-line { margin-bottom: 4px; font-size: 14px; }
-    .condition-banner {
+
+    .ner-strip-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--green-deep);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+    }
+
+    .ner-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 12px;
+      background: #fff;
+      border: 1px solid rgba(74,124,40,0.2);
+      border-radius: 100px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--green-deep);
+    }
+
+    .ner-tag .score {
+      font-size: 11px;
+      color: var(--text-light);
+      font-weight: 400;
+    }
+
+    /* Match Badge */
+    .match-banner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 20px;
       background: linear-gradient(135deg, var(--green-deep), var(--green-mid));
-      color: white; padding: 24px; border-radius: var(--radius-lg); text-align: center; margin-bottom: 20px;
+      border-radius: var(--radius-md);
+      margin-bottom: 20px;
+      color: #fff;
     }
-    .condition-banner h2 { font-family: 'Fraunces', serif; font-size: 28px; margin-bottom: 4px; }
-    .condition-banner p { font-size: 16px; opacity: 0.9; font-style: italic; }
-    .card {
-      background: var(--bg-card); border-radius: var(--radius-lg); padding: 24px;
-      box-shadow: var(--shadow-sm); border: 1px solid var(--border); margin-bottom: 16px;
+
+    .match-banner-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
-    .card h3 { font-family: 'Fraunces', serif; font-size: 18px; margin-bottom: 16px; color: var(--text-dark); }
-    .disclaimer {
-      background: var(--bg-warm); padding: 16px 20px; border-radius: var(--radius-md);
-      font-size: 13px; color: var(--text-light); border-left: 4px solid var(--amber);
+
+    .match-icon {
+      width: 36px;
+      height: 36px;
+      background: rgba(255,255,255,0.15);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
     }
+
+    .match-text h3 {
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .match-text p {
+      font-size: 12px;
+      opacity: 0.8;
+    }
+
+    .match-percent {
+      font-family: 'Fraunces', serif;
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--green-glow);
+    }
+
+    /* Disease Header Card */
+    .disease-header {
+      background: var(--bg-card);
+      border-radius: var(--radius-lg);
+      padding: 28px 28px 24px;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--border);
+      margin-bottom: 16px;
+    }
+
+    .disease-header .ita-code {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--amber);
+      background: var(--amber-soft);
+      padding: 3px 10px;
+      border-radius: 100px;
+      letter-spacing: 0.5px;
+      margin-bottom: 10px;
+    }
+
+    .disease-header h2 {
+      font-family: 'Fraunces', serif;
+      font-size: 30px;
+      font-weight: 700;
+      color: var(--green-deep);
+      line-height: 1.2;
+    }
+
+    .disease-header .sanskrit {
+      font-family: 'Fraunces', serif;
+      font-size: 17px;
+      font-style: italic;
+      color: var(--terra);
+      margin-top: 2px;
+    }
+
+    .disease-header .dosha-line {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+    }
+
+    .dosha-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .dosha-dot.vata { background: #5B8DEF; }
+    .dosha-dot.kapha { background: #4CAF50; }
+    .dosha-dot.pitta { background: #FF7043; }
+
+    .dosha-text {
+      font-size: 14px;
+      color: var(--text-mid);
+      font-weight: 500;
+    }
+
+    .snomed-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 10px;
+      font-size: 13px;
+      color: var(--text-light);
+    }
+
+    .snomed-code {
+      font-family: 'DM Mono', monospace, 'DM Sans';
+      background: var(--bg-warm);
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-mid);
+    }
+
+    /* Section Cards */
+    .section-card {
+      background: var(--bg-card);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--border);
+      margin-bottom: 12px;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .section-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+
+    .section-icon.green { background: var(--green-light); }
+    .section-icon.amber { background: var(--amber-soft); }
+    .section-icon.terra { background: var(--terra-soft); }
+    .section-icon.red { background: var(--red-soft); }
+
+    .section-title {
+      font-family: 'Fraunces', serif;
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text-dark);
+    }
+
+    .desc-text {
+      font-size: 15px;
+      line-height: 1.65;
+      color: var(--text-mid);
+    }
+
+    .modern-corr {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 10px;
+      font-size: 13px;
+      color: var(--text-light);
+      background: var(--bg-warm);
+      padding: 6px 14px;
+      border-radius: var(--radius-sm);
+    }
+
+    /* Tag Lists */
+    .tag-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .tag-item {
+      padding: 6px 14px;
+      background: var(--bg-cream);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      font-size: 13px;
+      color: var(--text-mid);
+      font-weight: 400;
+      line-height: 1.3;
+    }
+
+    .tag-item.symptom {
+      background: #FFF8F0;
+      border-color: #F0D8B8;
+      color: var(--terra);
+    }
+
+    /* Ottamooli Cards */
+    .remedy-grid {
+      display: grid;
+      gap: 12px;
+    }
+
+    .remedy-card {
+      background: var(--bg-cream);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 18px;
+      transition: all 0.2s ease;
+    }
+
+    .remedy-card:hover {
+      border-color: var(--green-soft);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .remedy-name {
+      font-weight: 600;
+      font-size: 15px;
+      color: var(--green-deep);
+      margin-bottom: 2px;
+    }
+
+    .remedy-sanskrit {
+      font-family: 'Fraunces', serif;
+      font-style: italic;
+      font-size: 13px;
+      color: var(--terra);
+      margin-bottom: 10px;
+    }
+
+    .remedy-details {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px 16px;
+    }
+
+    .remedy-detail {
+      font-size: 13px;
+      color: var(--text-mid);
+    }
+
+    .remedy-detail-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-light);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* Formulation Cards */
+    .formulation-card {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      padding: 16px;
+      background: var(--bg-cream);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+    }
+
+    .form-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: var(--green-light);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    .form-info h4 {
+      font-family: 'Fraunces', serif;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-dark);
+    }
+
+    .form-info .form-english {
+      font-size: 13px;
+      color: var(--text-light);
+      margin-bottom: 6px;
+    }
+
+    .form-meta {
+      display: flex;
+      gap: 16px;
+      font-size: 12px;
+      color: var(--text-mid);
+      flex-wrap: wrap;
+    }
+
+    .form-meta span {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .ref-badge {
+      font-size: 11px;
+      padding: 2px 8px;
+      background: var(--amber-soft);
+      border-radius: 4px;
+      color: var(--amber);
+      font-weight: 500;
+    }
+
+    /* Panchakarma */
+    .panchak-card {
+      padding: 16px;
+      background: var(--bg-cream);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      border-left: 3px solid var(--amber);
+    }
+
+    .panchak-card h4 {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-dark);
+      margin-bottom: 4px;
+    }
+
+    .panchak-card p {
+      font-size: 13px;
+      color: var(--text-mid);
+      margin-bottom: 4px;
+    }
+
+    .panchak-indication {
+      font-size: 12px;
+      color: var(--green-mid);
+      font-style: italic;
+    }
+
+    /* Pathya / Diet */
+    .diet-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .diet-col h4 {
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .diet-col.favor h4 { color: var(--green-mid); }
+    .diet-col.avoid h4 { color: var(--red-warn); }
+
+    .diet-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .diet-tag {
+      padding: 4px 10px;
+      border-radius: 100px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .diet-tag.good {
+      background: var(--green-light);
+      color: var(--green-deep);
+    }
+
+    .diet-tag.bad {
+      background: var(--red-soft);
+      color: var(--red-warn);
+    }
+
+    .diet-note {
+      grid-column: 1 / -1;
+      padding: 10px 14px;
+      background: var(--amber-soft);
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      color: var(--terra);
+      line-height: 1.5;
+      border-left: 3px solid var(--amber);
+    }
+
+    /* Lifestyle / Yoga */
+    .lifestyle-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .lifestyle-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      font-size: 14px;
+      color: var(--text-mid);
+      padding: 6px 0;
+    }
+
+    .lifestyle-list li::before {
+      content: '▸';
+      color: var(--green-soft);
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .yoga-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .yoga-tag {
+      padding: 8px 16px;
+      background: linear-gradient(135deg, #F0F7E8, #E8F0DE);
+      border: 1px solid rgba(74,124,40,0.15);
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      color: var(--green-deep);
+      font-weight: 500;
+    }
+
+    /* Prognosis */
+    .prognosis-box {
+      padding: 16px 20px;
+      background: linear-gradient(135deg, var(--green-light), #F0F7E8);
+      border-radius: var(--radius-md);
+      font-size: 14px;
+      color: var(--text-mid);
+      line-height: 1.6;
+    }
+
+    /* Warning Signs */
+    .warning-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .warning-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      background: var(--red-soft);
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      color: var(--red-warn);
+      font-weight: 500;
+    }
+
+    .warning-item .warn-icon {
+      width: 20px;
+      height: 20px;
+      background: var(--red-warn);
+      color: #fff;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    /* Disclaimer Footer */
+    .disclaimer-bar {
+      margin-top: 20px;
+      padding: 16px 20px;
+      background: var(--bg-warm);
+      border-radius: var(--radius-md);
+      font-size: 13px;
+      color: var(--text-light);
+      text-align: center;
+      line-height: 1.5;
+      border: 1px solid var(--border);
+    }
+
+    /* Two-Col Layout */
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    /* Animation */
+    .fade-in {
+      animation: fadeUp 0.5s ease both;
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .section-card:nth-child(1) { animation-delay: 0.05s; }
+    .section-card:nth-child(2) { animation-delay: 0.1s; }
+    .section-card:nth-child(3) { animation-delay: 0.15s; }
+    .section-card:nth-child(4) { animation-delay: 0.2s; }
+    .section-card:nth-child(5) { animation-delay: 0.25s; }
+    .section-card:nth-child(6) { animation-delay: 0.3s; }
 
     @media (max-width: 640px) {
+      .two-col, .diet-grid, .remedy-details {
+        grid-template-columns: 1fr;
+      }
+      .header h1 { font-size: 32px; }
+      .disease-header h2 { font-size: 24px; }
       .search-bar { flex-direction: column; }
       .app-container { padding: 16px 12px 40px; }
-      .header h1 { font-size: 32px; }
-      .info-grid { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -182,29 +720,6 @@
       <div class="header-divider"></div>
     </header>
 
-    <!-- Pipeline -->
-    <div class="pipeline" style="display: flex; align-items: center; justify-content: center; gap: 20px; margin: 40px 0; font-size: 14px; color: var(--text-light); flex-wrap: wrap;">
-      <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
-        <span style="font-size: 24px;">💬</span>
-        <span>Symptom Input</span>
-      </div>
-      <span style="font-size: 20px;">→</span>
-      <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
-        <span style="font-size: 24px;">🧠</span>
-        <span>Bio NER</span>
-      </div>
-      <span style="font-size: 20px;">→</span>
-      <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
-        <span style="font-size: 24px;">🔗</span>
-        <span>UMLS + ITA</span>
-      </div>
-      <span style="font-size: 20px;">→</span>
-      <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
-        <span style="font-size: 24px;">🌿</span>
-        <span>AyurParam</span>
-      </div>
-    </div>
-
     <!-- Search Section -->
     <section class="search-section">
       <p class="search-label">Describe your symptoms</p>
@@ -212,11 +727,11 @@
       
       <!-- Example buttons -->
       <div class="examples" id="examples">
+        <button class="example-btn" data-value="cough">cough</button>
         <button class="example-btn" data-value="headache">headache</button>
         <button class="example-btn" data-value="stomach pain">stomach pain</button>
         <button class="example-btn" data-value="fever">fever</button>
         <button class="example-btn" data-value="loss of appetite">loss of appetite</button>
-        <button class="example-btn" data-value="cough">cough</button>
       </div>
 
       <div class="search-bar">
@@ -224,7 +739,7 @@
           class="search-input"
           id="symptomInput"
           type="text"
-          placeholder="e.g., I have severe headache and nausea"
+          placeholder="e.g., I have severe cough with phlegm"
           autocomplete="off"
         >
         <button
@@ -247,14 +762,190 @@
       </div>
     </section>
 
-    <!-- Loading, Error, Results containers -->
+    <!-- Loading, Error containers -->
     <div id="loading" class="loading hidden">
       <p>🔄 AI is analyzing your symptoms... This may take 30–90s</p>
     </div>
     <div id="error" class="error-alert hidden"></div>
-    <div id="results" class="results hidden"></div>
+
+    <!-- Results sections (will be shown when data is loaded) -->
+    <div class="ner-strip fade-in hidden" id="nerStrip">
+      <span class="ner-strip-label">Detected Entities</span>
+      <!-- Entities will be added by JavaScript -->
+    </div>
+
+    <div class="match-banner fade-in hidden" id="matchBanner">
+      <div class="match-banner-left">
+        <div class="match-icon">✓</div>
+        <div class="match-text">
+          <h3>Ayurvedic Match Found</h3>
+          <p id="matchDetails">Detected: cough → ITA-5.10.1 · exact match</p>
+        </div>
+      </div>
+      <div class="match-percent" id="matchPercent">100%</div>
+    </div>
+
+    <!-- Disease Header -->
+    <div class="disease-header fade-in hidden" id="diseaseHeader">
+      <span class="ita-code" id="itaCode">ITA-5.10.1</span>
+      <h2 id="diseaseName">Cough</h2>
+      <p class="sanskrit" id="sanskritName">Kāsaḥ</p>
+      <div class="dosha-line">
+        <span class="dosha-dot vata"></span>
+        <span class="dosha-dot kapha"></span>
+        <span class="dosha-dot pitta"></span>
+        <span class="dosha-text" id="doshaText">Vata, Pitta & Kapha imbalance</span>
+      </div>
+      <div class="snomed-row">
+        <span>SNOMED CT:</span>
+        <span class="snomed-code" id="snomedCode">49727002</span>
+        <span id="snomedName">Cough</span>
+      </div>
+    </div>
+
+    <!-- Results container for all the cards -->
+    <div id="results" class="hidden">
+      <!-- All section cards will be inserted here by JavaScript -->
+    </div>
+
+    <!-- Disclaimer Footer -->
+    <div class="disclaimer-bar fade-in hidden" id="disclaimerFooter">
+      ⚕️ This information is for <strong>educational purposes only</strong>. Always consult a qualified Ayurvedic practitioner before starting any treatment.
+      <br><span style="font-size:11px;margin-top:4px;display:inline-block;">AyurAssist v2.0 · NLP + LLM Powered Clinical Decision Support · WHO ITA · SNOMED CT</span>
+    </div>
   </div>
 
-  <script src="app.js"></script>
-</body>
-</html>
+  <script>
+    // DOM Elements
+    const symptomInput = document.getElementById('symptomInput');
+    const analyzeBtn = document.getElementById('analyzeBtn');
+    const examples = document.getElementById('examples');
+    const loading = document.getElementById('loading');
+    const error = document.getElementById('error');
+    const results = document.getElementById('results');
+    const nerStrip = document.getElementById('nerStrip');
+    const matchBanner = document.getElementById('matchBanner');
+    const diseaseHeader = document.getElementById('diseaseHeader');
+    const disclaimerFooter = document.getElementById('disclaimerFooter');
+
+    // Update button state based on input
+    symptomInput.addEventListener('input', () => {
+      analyzeBtn.disabled = symptomInput.value.trim().length === 0;
+    });
+
+    // Example button click handler
+    examples.addEventListener('click', (e) => {
+      if (e.target.classList.contains('example-btn')) {
+        const value = e.target.getAttribute('data-value');
+        symptomInput.value = value;
+        analyzeBtn.disabled = false;
+      }
+    });
+
+    // Analyze button click handler
+    analyzeBtn.addEventListener('click', async () => {
+      const symptoms = symptomInput.value.trim();
+      if (!symptoms) return;
+
+      // Show loading, hide other sections
+      loading.classList.remove('hidden');
+      error.classList.add('hidden');
+      results.classList.add('hidden');
+      nerStrip.classList.add('hidden');
+      matchBanner.classList.add('hidden');
+      diseaseHeader.classList.add('hidden');
+      disclaimerFooter.classList.add('hidden');
+
+      try {
+        // Simulate API call (replace with actual API call)
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // For demo purposes, we'll show the cough layout
+        displayCoughResults();
+        
+      } catch (err) {
+        showError('An error occurred. Please try again.');
+      } finally {
+        loading.classList.add('hidden');
+      }
+    });
+
+    function showError(message) {
+      error.textContent = message;
+      error.classList.remove('hidden');
+    }
+
+    function displayCoughResults() {
+      // Clear previous results
+      results.innerHTML = '';
+      
+      // Show all sections
+      nerStrip.classList.remove('hidden');
+      matchBanner.classList.remove('hidden');
+      diseaseHeader.classList.remove('hidden');
+      results.classList.remove('hidden');
+      disclaimerFooter.classList.remove('hidden');
+      
+      // Fill NER strip
+      nerStrip.innerHTML = `
+        <span class="ner-strip-label">Detected Entities</span>
+        <span class="ner-tag">cough <span class="score">Sign_symptom · 98%</span></span>
+        <span class="ner-tag">phlegm <span class="score">Sign_symptom · 92%</span></span>
+        <span class="ner-tag">difficulty breathing <span class="score">Sign_symptom · 85%</span></span>
+      `;
+      
+      // Fill match banner
+      document.getElementById('matchDetails').textContent = 'Detected: cough → ITA-5.10.1 · exact match';
+      document.getElementById('matchPercent').textContent = '100%';
+      
+      // Fill disease header
+      document.getElementById('itaCode').textContent = 'ITA-5.10.1';
+      document.getElementById('diseaseName').textContent = 'Cough';
+      document.getElementById('sanskritName').textContent = 'Kāsaḥ';
+      document.getElementById('doshaText').textContent = 'Vata, Pitta & Kapha imbalance';
+      document.getElementById('snomedCode').textContent = '49727002';
+      document.getElementById('snomedName').textContent = 'Cough';
+      
+      // Create all the section cards based on your file content
+      results.innerHTML = `
+        <!-- Description -->
+        <div class="section-card fade-in">
+          <div class="section-header">
+            <div class="section-icon green">📋</div>
+            <span class="section-title">Description</span>
+          </div>
+          <p class="desc-text">Cough (Kāsa) is a protective reflex to clear the respiratory tract. Ayurveda classifies cough based on dosha predominance: Vataja, Pittaja, Kaphaja, or Sannipātaja (all three).</p>
+          <div class="modern-corr">🏥 Chronic bronchitis, Asthma, Bronchiectasis (ICD-10: J41-J44, J45)</div>
+        </div>
+
+        <!-- Nidana & Rupa -->
+        <div class="two-col">
+          <div class="section-card fade-in">
+            <div class="section-header">
+              <div class="section-icon amber">🔍</div>
+              <span class="section-title">Root Causes (Nidāna)</span>
+            </div>
+            <div class="tag-list">
+              <span class="tag-item">Exposure to dust, smoke, cold wind</span>
+              <span class="tag-item">Consumption of cold food/drinks</span>
+              <span class="tag-item">Kapha-aggravating foods (dairy, sweets)</span>
+              <span class="tag-item">Suppression of natural urges</span>
+              <span class="tag-item">Respiratory infections</span>
+              <span class="tag-item">Allergens and pollutants</span>
+            </div>
+          </div>
+
+          <div class="section-card fade-in">
+            <div class="section-header">
+              <div class="section-icon terra">🩺</div>
+              <span class="section-title">Symptoms (Rūpa)</span>
+            </div>
+            <div class="tag-list">
+              <span class="tag-item symptom">Dry cough (Vata)</span>
+              <span class="tag-item symptom">Productive cough with yellow sputum (Pitta)</span>
+              <span class="tag-item symptom">White, thick sputum (Kapha)</span>
+              <span class="tag-item symptom">Chest pain</span>
+              <span class="tag-item symptom">Hoarseness of voice</span>
+              <span class="tag-item symptom">Difficulty breathing</span>
+            </div>
+          </
