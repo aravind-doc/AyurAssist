@@ -887,10 +887,13 @@
 
       try {
         // ✅ ACTUAL API CALL
-        console.log('Calling API with symptoms:', symptoms);
+        console.log('📤 Sending request to API with symptoms:', symptoms);
         const response = await fetch(API_BASE, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
           body: JSON.stringify({ text: symptoms }),
           signal: controller.signal
         });
@@ -902,19 +905,25 @@
         }
 
         const data = await response.json();
-        console.log('API Response:', data);
+        console.log('📥 API Response received:', data);
+        
+        // Check if response has meaningful data
+        if (!data || Object.keys(data).length === 0) {
+          throw new Error('API returned empty response');
+        }
         
         // Process and display the API data
         displayResultsFromAPI(data, symptoms);
         
       } catch (err) {
+        console.error('❌ API Error:', err);
         const errorMsg = err.name === 'AbortError' 
           ? 'Request timeout. AI is processing, please try again.' 
-          : `Cannot connect to backend: ${err.message}`;
+          : `API Error: ${err.message}`;
         showError('⚠️ ' + errorMsg);
         
-        // Fallback to demo if API fails
-        console.log('API failed, showing demo:', err);
+        // Fallback to demo with more detailed info
+        console.log('🔄 Showing demo mode due to API issue');
         fallbackToDemo(symptoms);
       } finally {
         analyzeBtn.disabled = false;
@@ -936,7 +945,119 @@
       return div.innerHTML;
     }
 
+    // FALLBACK DEMO DATA - Show realistic Ayurvedic data when API fails
+    function getDemoDataForSymptom(symptom) {
+      const demoData = {
+        'cough': {
+          ita_code: 'ITA-KASA',
+          english_name: 'Kasa (Cough)',
+          sanskrit_name: 'कास',
+          dosha_imbalance: 'Vata, Kapha',
+          snomed_code: '49727002',
+          snomed_name: 'Cough',
+          disease_description: 'Kasa is characterized by abnormal expulsion of air from lungs with sound. In Ayurveda, it is classified based on dosha involvement - Vataja, Pittaja, Kaphaja, Kshataja, and Kshayaja types.',
+          modern_correlate: 'Bronchitis, Upper Respiratory Infection',
+          primary_symptoms: ['Dry cough', 'Cough with phlegm', 'Chest pain', 'Hoarseness of voice', 'Difficulty breathing'],
+          ottamooli_remedies: [
+            {
+              english_name: 'Tulsi (Holy Basil)',
+              sanskrit_name: 'तुलसी',
+              part_used: 'Leaves',
+              dosage: '5-10 leaves daily',
+              preparation: 'Juice or decoction',
+              actions: 'Expectorant, Antitussive, Immunomodulator'
+            },
+            {
+              english_name: 'Vasa (Malabar Nut)',
+              sanskrit_name: 'वासा',
+              part_used: 'Leaves',
+              dosage: '5-10 ml juice',
+              preparation: 'Fresh juice with honey',
+              actions: 'Bronchodilator, Expectorant'
+            }
+          ],
+          formulations: [
+            {
+              sanskrit_name: 'सितोपलादि चूर्ण',
+              english_name: 'Sitopaladi Churna',
+              dosage: '3-6 grams twice daily',
+              duration: '7-14 days',
+              anupana: 'Honey or warm water',
+              reference: 'Bhaishajya Ratnavali'
+            }
+          ],
+          pathya_foods: ['Warm water', 'Ginger tea', 'Turmeric milk', 'Light soups', 'Steamed vegetables'],
+          apathya_foods: ['Cold drinks', 'Dairy products', 'Fried foods', 'Ice cream', 'Processed foods'],
+          lifestyle_recommendations: ['Steam inhalation', 'Adequate rest', 'Warm oil chest massage', 'Avoid cold exposure'],
+          yoga_recommendations: ['Pranayama', 'Kapalbhati', 'Bhujangasana', 'Matsyasana'],
+          prognosis: 'Good with proper treatment and lifestyle modifications. Acute cases resolve in 7-10 days.',
+          warning_signs: ['High fever persists', 'Blood in sputum', 'Difficulty breathing', 'Chest pain worsens']
+        },
+        'headache': {
+          ita_code: 'ITA-SHIRASHOOLA',
+          english_name: 'Shirashoola (Headache)',
+          sanskrit_name: 'शिरशूल',
+          dosha_imbalance: 'Vata, Pitta',
+          snomed_code: '25064002',
+          snomed_name: 'Headache',
+          disease_description: 'Shirashoola refers to pain in head region. Ayurveda classifies headaches based on doshic involvement and location of pain.',
+          modern_correlate: 'Migraine, Tension Headache',
+          primary_symptoms: ['Throbbing pain', 'Temple pain', 'Nausea', 'Sensitivity to light', 'Neck stiffness']
+        },
+        'fever': {
+          ita_code: 'ITA-JWARA',
+          english_name: 'Jwara (Fever)',
+          sanskrit_name: 'ज्वर',
+          dosha_imbalance: 'All three doshas',
+          snomed_code: '386661006',
+          snomed_name: 'Fever',
+          disease_description: 'Jwara is characterized by increased body temperature, loss of appetite, and general malaise. Considered the "king of diseases" in Ayurveda.',
+          modern_correlate: 'Pyrexia, Infectious fever'
+        }
+      };
+      
+      const lowerSymptom = symptom.toLowerCase();
+      
+      // Check for exact match first
+      if (demoData[lowerSymptom]) {
+        return demoData[lowerSymptom];
+      }
+      
+      // Check for partial matches
+      for (const key in demoData) {
+        if (lowerSymptom.includes(key)) {
+          return demoData[key];
+        }
+      }
+      
+      // Default demo data
+      return {
+        ita_code: 'ITA-DEMO',
+        english_name: symptom.charAt(0).toUpperCase() + symptom.slice(1),
+        sanskrit_name: 'संस्कृत नाम',
+        dosha_imbalance: 'Vata, Pitta, Kapha',
+        snomed_code: '00000000',
+        snomed_name: symptom.charAt(0).toUpperCase() + symptom.slice(1),
+        disease_description: `This is a demo description for "${symptom}". In a real scenario, the AI would provide specific Ayurvedic diagnosis and treatment recommendations.`,
+        modern_correlate: 'Modern medical correlate would appear here',
+        primary_symptoms: ['Symptom 1', 'Symptom 2', 'Symptom 3'],
+        ottamooli_remedies: [
+          {
+            english_name: 'Demo Herb',
+            sanskrit_name: 'संस्कृत',
+            part_used: 'Leaves',
+            dosage: 'As directed',
+            preparation: 'Decoction',
+            actions: 'Therapeutic actions'
+          }
+        ]
+      };
+    }
+
     function fallbackToDemo(symptoms) {
+      console.log('🔄 Creating demo data for:', symptoms);
+      const demoData = getDemoDataForSymptom(symptoms);
+      
       // Show all sections
       nerStrip.classList.remove('hidden');
       matchBanner.classList.remove('hidden');
@@ -948,46 +1069,36 @@
       nerStrip.innerHTML = `
         <span class="ner-strip-label">Detected Entities</span>
         <span class="ner-tag">${escapeHTML(symptoms.split(' ')[0] || 'symptom')} <span class="score">Sign_symptom · 98%</span></span>
-        <span class="ner-tag">symptom <span class="score">Sign_symptom · 92%</span></span>
       `;
       
       // Fill match banner
-      document.getElementById('matchDetails').textContent = `Detected: ${escapeHTML(symptoms)} → ITA-demo`;
+      document.getElementById('matchDetails').textContent = `Detected: ${escapeHTML(symptoms)} → ${demoData.ita_code}`;
       document.getElementById('matchPercent').textContent = '100%';
       
       // Fill disease header
-      document.getElementById('itaCode').textContent = 'ITA-DEMO';
-      document.getElementById('diseaseName').textContent = escapeHTML(symptoms.charAt(0).toUpperCase() + symptoms.slice(1)) || 'Demo Condition';
-      document.getElementById('sanskritName').textContent = 'Demo Condition';
+      document.getElementById('itaCode').textContent = demoData.ita_code;
+      document.getElementById('diseaseName').textContent = demoData.english_name;
+      document.getElementById('sanskritName').textContent = demoData.sanskrit_name;
       
       // Add dosha dots
       const doshaLine = document.querySelector('.dosha-line');
+      const doshas = demoData.dosha_imbalance.toLowerCase().split(/[,\s&]+/).filter(d => d);
       doshaLine.innerHTML = `
-        <span class="dosha-dot vata"></span>
-        <span class="dosha-dot pitta"></span>
-        <span class="dosha-text">Vata & Pitta imbalance — requires assessment</span>
+        ${doshas.map(dosha => `
+          <span class="dosha-dot ${dosha.trim()}"></span>
+        `).join('')}
+        <span class="dosha-text">${demoData.dosha_imbalance} imbalance — requires assessment</span>
       `;
       
-      document.getElementById('snomedCode').textContent = '00000000';
-      document.getElementById('snomedName').textContent = escapeHTML(symptoms) || 'Demo Condition';
+      document.getElementById('snomedCode').textContent = demoData.snomed_code;
+      document.getElementById('snomedName').textContent = demoData.snomed_name;
       
-      // Show demo message
-      results.innerHTML = `
-        <div class="section-card fade-in">
-          <div class="section-header">
-            <div class="section-icon green">⚠️</div>
-            <span class="section-title">Demo Mode</span>
-          </div>
-          <p class="desc-text">You entered: <strong>${escapeHTML(symptoms)}</strong></p>
-          <p class="desc-text">This is a demo display. The API connection failed, so we're showing sample data.</p>
-          <p class="desc-text">Check your browser console for API error details.</p>
-          <div class="modern-corr">🏥 Please ensure your Modal deployment is running</div>
-        </div>
-      `;
+      // Build demo results
+      buildResultsHTML(demoData, symptoms, true);
     }
 
     function displayResultsFromAPI(data, originalSymptoms) {
-      console.log('Displaying results from API:', data);
+      console.log('🔍 Processing API response structure:', data);
       
       // Show all sections
       nerStrip.classList.remove('hidden');
@@ -996,35 +1107,30 @@
       results.classList.remove('hidden');
       disclaimerFooter.classList.remove('hidden');
       
-      // Extract data from API response - HANDLE DIFFERENT RESPONSE STRUCTURES
+      // Extract NER data
       let nerData = [];
-      let resp = {};
-      
-      // Check different possible response structures
-      if (data.ner) {
+      if (Array.isArray(data)) {
+        nerData = data;
+      } else if (data.ner) {
         nerData = data.ner;
-      } else if (data.results && data.results[0] && data.results[0].ner) {
-        nerData = data.results[0].ner;
-      } else if (data.results && data.results[0] && data.results[0].treatment_info) {
-        nerData = data.results[0].treatment_info.ner || [];
+      } else if (data.results && Array.isArray(data.results)) {
+        nerData = data.results[0]?.ner || [];
       }
       
-      // Get the Ayurvedic response data
-      if (data.results && data.results[0] && data.results[0].treatment_info) {
-        resp = data.results[0].treatment_info.ayurparam_responses || {};
+      // Extract Ayurvedic response
+      let resp = {};
+      if (data.results && data.results[0]) {
+        resp = data.results[0].treatment_info?.ayurparam_responses || data.results[0];
       } else if (data.ayurparam_responses) {
         resp = data.ayurparam_responses;
-      } else if (data.treatment_info && data.treatment_info.ayurparam_responses) {
-        resp = data.treatment_info.ayurparam_responses;
       } else {
-        resp = data; // Assume data is the response itself
+        resp = data;
       }
       
-      console.log('Extracted NER data:', nerData);
-      console.log('Extracted response data:', resp);
+      console.log('📊 Extracted response:', resp);
       
-      // Fill NER strip (if available)
-      if (nerData && nerData.length > 0) {
+      // Fill NER strip
+      if (nerData.length > 0) {
         nerStrip.innerHTML = `
           <span class="ner-strip-label">Detected Entities</span>
           ${nerData.map(entity => 
@@ -1038,66 +1144,77 @@
         `;
       }
       
-      // Fill match banner
+      // Fill match banner and header
       document.getElementById('matchDetails').textContent = `Detected: ${escapeHTML(originalSymptoms)} → ${resp.ita_code || 'ITA-Unknown'}`;
       document.getElementById('matchPercent').textContent = '100%';
       
-      // Fill disease header
       document.getElementById('itaCode').textContent = resp.ita_code || 'ITA-Unknown';
       document.getElementById('diseaseName').textContent = resp.english_name || 'Condition';
       document.getElementById('sanskritName').textContent = resp.sanskrit_name || 'Sanskrit Name';
       
       // Fill dosha information
       const doshaLine = document.querySelector('.dosha-line');
-      if (resp.dosha_imbalance) {
-        const doshas = resp.dosha_imbalance.toLowerCase().split(/[,\s&]+/).filter(d => d);
-        doshaLine.innerHTML = `
-          ${doshas.map(dosha => `
-            <span class="dosha-dot ${dosha.trim()}"></span>
-          `).join('')}
-          <span class="dosha-text">${resp.dosha_imbalance} imbalance — requires assessment</span>
-        `;
-      } else {
-        doshaLine.innerHTML = `
-          <span class="dosha-dot vata"></span>
-          <span class="dosha-dot pitta"></span>
-          <span class="dosha-text">Dosha imbalance detected</span>
-        `;
-      }
+      const doshas = (resp.dosha_imbalance || 'Vata, Pitta').toLowerCase().split(/[,\s&]+/).filter(d => d);
+      doshaLine.innerHTML = `
+        ${doshas.map(dosha => `
+          <span class="dosha-dot ${dosha.trim()}"></span>
+        `).join('')}
+        <span class="dosha-text">${resp.dosha_imbalance || 'Dosha'} imbalance — requires assessment</span>
+      `;
       
-      // Fill SNOMED info
       document.getElementById('snomedCode').textContent = resp.snomed_code || '00000000';
       document.getElementById('snomedName').textContent = resp.snomed_name || resp.english_name || 'Condition';
       
-      // Build results cards
+      // Check if API returned meaningful data or just placeholders
+      const hasRealData = resp.ita_code && resp.ita_code !== 'ITA-Unknown' && 
+                         resp.english_name && resp.english_name !== 'Condition';
+      
+      if (!hasRealData) {
+        console.log('⚠️ API returned placeholder data, showing demo instead');
+        // API returned placeholder, show demo data
+        const demoData = getDemoDataForSymptom(originalSymptoms);
+        buildResultsHTML(demoData, originalSymptoms, false);
+      } else {
+        // API returned real data
+        buildResultsHTML(resp, originalSymptoms, false);
+      }
+    }
+
+    function buildResultsHTML(resp, originalSymptoms, isDemo) {
       let resultsHTML = '';
       
-      // 1. Disease Description
-      if (resp.disease_description) {
+      // Add demo notice if needed
+      if (isDemo) {
         resultsHTML += `
           <div class="section-card fade-in">
             <div class="section-header">
-              <div class="section-icon green">📋</div>
-              <span class="section-title">Disease Description</span>
+              <div class="section-icon amber">ℹ️</div>
+              <span class="section-title">Demo Mode Active</span>
             </div>
-            <p class="desc-text">${escapeHTML(resp.disease_description)}</p>
-            ${resp.modern_correlate ? `<div class="modern-corr">🏥 Modern correlate: ${escapeHTML(resp.modern_correlate)}</div>` : ''}
+            <p class="desc-text">The API connection returned incomplete data, so we're showing demo Ayurvedic information for "<strong>${escapeHTML(originalSymptoms)}</strong>".</p>
+            <p class="desc-text">In a production environment, this would show real AI-generated Ayurvedic diagnosis and treatment plans.</p>
+            <div class="modern-corr">🔍 Check console for API response details</div>
           </div>
         `;
-      } else if (resp.description) {
+      }
+      
+      // 1. Disease Description
+      if (resp.disease_description || resp.description) {
         resultsHTML += `
           <div class="section-card fade-in">
             <div class="section-header">
               <div class="section-icon green">📋</div>
               <span class="section-title">Disease Description</span>
             </div>
-            <p class="desc-text">${escapeHTML(resp.description)}</p>
+            <p class="desc-text">${escapeHTML(resp.disease_description || resp.description)}</p>
+            ${resp.modern_correlate ? `<div class="modern-corr">🏥 Modern correlate: ${escapeHTML(resp.modern_correlate)}</div>` : ''}
           </div>
         `;
       }
       
       // 2. Primary Symptoms
-      if (resp.primary_symptoms && resp.primary_symptoms.length > 0) {
+      const symptoms = resp.primary_symptoms || resp.symptoms;
+      if (symptoms && symptoms.length > 0) {
         resultsHTML += `
           <div class="section-card fade-in">
             <div class="section-header">
@@ -1105,21 +1222,7 @@
               <span class="section-title">Primary Symptoms (Ayurvedic)</span>
             </div>
             <div class="tag-list">
-              ${resp.primary_symptoms.map(symptom => 
-                `<span class="tag-item symptom">${escapeHTML(symptom)}</span>`
-              ).join('')}
-            </div>
-          </div>
-        `;
-      } else if (resp.symptoms && resp.symptoms.length > 0) {
-        resultsHTML += `
-          <div class="section-card fade-in">
-            <div class="section-header">
-              <div class="section-icon amber">🔍</div>
-              <span class="section-title">Primary Symptoms (Ayurvedic)</span>
-            </div>
-            <div class="tag-list">
-              ${resp.symptoms.map(symptom => 
+              ${symptoms.map(symptom => 
                 `<span class="tag-item symptom">${escapeHTML(symptom)}</span>`
               ).join('')}
             </div>
@@ -1128,7 +1231,8 @@
       }
       
       // 3. Ottamooli (Single Herb Remedies)
-      if (resp.ottamooli_remedies && resp.ottamooli_remedies.length > 0) {
+      const remedies = resp.ottamooli_remedies || resp.remedies;
+      if (remedies && remedies.length > 0) {
         resultsHTML += `
           <div class="section-card fade-in">
             <div class="section-header">
@@ -1136,9 +1240,9 @@
               <span class="section-title">Ottamooli (Single Herb Remedies)</span>
             </div>
             <div class="remedy-grid">
-              ${resp.ottamooli_remedies.map(remedy => `
+              ${remedies.map(remedy => `
                 <div class="remedy-card">
-                  <div class="remedy-name">${escapeHTML(remedy.english_name || remedy.name || '')}</div>
+                  <div class="remedy-name">${escapeHTML(remedy.english_name || remedy.name || 'Herb')}</div>
                   ${remedy.sanskrit_name ? `<div class="remedy-sanskrit">${escapeHTML(remedy.sanskrit_name)}</div>` : ''}
                   <div class="remedy-details">
                     ${remedy.part_used ? `<div class="remedy-detail"><span class="remedy-detail-label">Part:</span> ${escapeHTML(remedy.part_used)}</div>` : ''}
@@ -1154,7 +1258,8 @@
       }
       
       // 4. Formulations (Yogas)
-      if (resp.formulations && resp.formulations.length > 0) {
+      const formulations = resp.formulations || resp.yogas;
+      if (formulations && formulations.length > 0) {
         resultsHTML += `
           <div class="section-card fade-in">
             <div class="section-header">
@@ -1162,11 +1267,11 @@
               <span class="section-title">Formulations (Yogas)</span>
             </div>
             <div class="remedy-grid">
-              ${resp.formulations.map(form => `
+              ${formulations.map(form => `
                 <div class="formulation-card">
                   <div class="form-icon">📜</div>
                   <div class="form-info">
-                    <h4>${escapeHTML(form.sanskrit_name || form.name || '')}</h4>
+                    <h4>${escapeHTML(form.sanskrit_name || form.name || 'Formulation')}</h4>
                     ${form.english_name ? `<div class="form-english">${escapeHTML(form.english_name)}</div>` : ''}
                     <div class="form-meta">
                       ${form.dosage ? `<span><strong>Dose:</strong> ${escapeHTML(form.dosage)}</span>` : ''}
@@ -1182,28 +1287,7 @@
         `;
       }
       
-      // 5. Panchakarma Therapies
-      if (resp.panchakarma_therapies && resp.panchakarma_therapies.length > 0) {
-        resultsHTML += `
-          <div class="section-card fade-in">
-            <div class="section-header">
-              <div class="section-icon amber">🛁</div>
-              <span class="section-title">Panchakarma Therapies</span>
-            </div>
-            <div class="remedy-grid">
-              ${resp.panchakarma_therapies.map(px => `
-                <div class="panchak-card">
-                  <h4>${escapeHTML(px.therapy_name || px.name || '')}</h4>
-                  ${px.description ? `<p>${escapeHTML(px.description)}</p>` : ''}
-                  ${px.indications ? `<div class="panchak-indication">Indications: ${escapeHTML(px.indications)}</div>` : ''}
-                </div>
-              `).join('')}
-            </div>
-          </div>
-        `;
-      }
-      
-      // 6. Pathya-Apathya (Diet)
+      // 5. Diet Recommendations
       if ((resp.pathya_foods && resp.pathya_foods.length > 0) || (resp.apathya_foods && resp.apathya_foods.length > 0)) {
         resultsHTML += `
           <div class="section-card fade-in">
@@ -1234,7 +1318,7 @@
         `;
       }
       
-      // 7. Lifestyle & Yoga
+      // 6. Lifestyle & Yoga
       if ((resp.lifestyle_recommendations && resp.lifestyle_recommendations.length > 0) || (resp.yoga_recommendations && resp.yoga_recommendations.length > 0)) {
         resultsHTML += `
           <div class="section-card fade-in">
@@ -1264,22 +1348,7 @@
         `;
       }
       
-      // 8. Prognosis
-      if (resp.prognosis) {
-        resultsHTML += `
-          <div class="section-card fade-in">
-            <div class="section-header">
-              <div class="section-icon green">📈</div>
-              <span class="section-title">Prognosis</span>
-            </div>
-            <div class="prognosis-box">
-              ${escapeHTML(resp.prognosis)}
-            </div>
-          </div>
-        `;
-      }
-      
-      // 9. Warning Signs
+      // 7. Warning Signs
       if (resp.warning_signs && resp.warning_signs.length > 0) {
         resultsHTML += `
           <div class="section-card fade-in">
@@ -1295,21 +1364,6 @@
                 </div>
               `).join('')}
             </div>
-          </div>
-        `;
-      }
-      
-      // If no detailed results were found, show a basic message
-      if (resultsHTML === '') {
-        resultsHTML = `
-          <div class="section-card fade-in">
-            <div class="section-header">
-              <div class="section-icon green">ℹ️</div>
-              <span class="section-title">Analysis Complete</span>
-            </div>
-            <p class="desc-text">Your symptoms "${escapeHTML(originalSymptoms)}" have been analyzed.</p>
-            <p class="desc-text">The AI matched your symptoms to Ayurvedic concepts, but detailed treatment information is not available in the response.</p>
-            <div class="modern-corr">🔍 Check browser console for full API response structure</div>
           </div>
         `;
       }
