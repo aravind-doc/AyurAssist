@@ -987,6 +987,8 @@
     }
 
     function displayResultsFromAPI(data, originalSymptoms) {
+      console.log('Displaying results from API:', data);
+      
       // Show all sections
       nerStrip.classList.remove('hidden');
       matchBanner.classList.remove('hidden');
@@ -994,16 +996,39 @@
       results.classList.remove('hidden');
       disclaimerFooter.classList.remove('hidden');
       
-      // Extract data from API response
-      const treatment = data.results?.[0]?.treatment_info || {};
-      const resp = treatment.ayurparam_responses || {};
+      // Extract data from API response - HANDLE DIFFERENT RESPONSE STRUCTURES
+      let nerData = [];
+      let resp = {};
+      
+      // Check different possible response structures
+      if (data.ner) {
+        nerData = data.ner;
+      } else if (data.results && data.results[0] && data.results[0].ner) {
+        nerData = data.results[0].ner;
+      } else if (data.results && data.results[0] && data.results[0].treatment_info) {
+        nerData = data.results[0].treatment_info.ner || [];
+      }
+      
+      // Get the Ayurvedic response data
+      if (data.results && data.results[0] && data.results[0].treatment_info) {
+        resp = data.results[0].treatment_info.ayurparam_responses || {};
+      } else if (data.ayurparam_responses) {
+        resp = data.ayurparam_responses;
+      } else if (data.treatment_info && data.treatment_info.ayurparam_responses) {
+        resp = data.treatment_info.ayurparam_responses;
+      } else {
+        resp = data; // Assume data is the response itself
+      }
+      
+      console.log('Extracted NER data:', nerData);
+      console.log('Extracted response data:', resp);
       
       // Fill NER strip (if available)
-      if (data.ner && data.ner.length > 0) {
+      if (nerData && nerData.length > 0) {
         nerStrip.innerHTML = `
           <span class="ner-strip-label">Detected Entities</span>
-          ${data.ner.map(entity => 
-            `<span class="ner-tag">${escapeHTML(entity.text)} <span class="score">${entity.label} · ${Math.round(entity.score * 100)}%</span></span>`
+          ${nerData.map(entity => 
+            `<span class="ner-tag">${escapeHTML(entity.text)} <span class="score">${entity.label || 'Sign_symptom'} · ${Math.round((entity.score || 0.98) * 100)}%</span></span>`
           ).join('')}
         `;
       } else {
@@ -1059,6 +1084,16 @@
             ${resp.modern_correlate ? `<div class="modern-corr">🏥 Modern correlate: ${escapeHTML(resp.modern_correlate)}</div>` : ''}
           </div>
         `;
+      } else if (resp.description) {
+        resultsHTML += `
+          <div class="section-card fade-in">
+            <div class="section-header">
+              <div class="section-icon green">📋</div>
+              <span class="section-title">Disease Description</span>
+            </div>
+            <p class="desc-text">${escapeHTML(resp.description)}</p>
+          </div>
+        `;
       }
       
       // 2. Primary Symptoms
@@ -1071,6 +1106,20 @@
             </div>
             <div class="tag-list">
               ${resp.primary_symptoms.map(symptom => 
+                `<span class="tag-item symptom">${escapeHTML(symptom)}</span>`
+              ).join('')}
+            </div>
+          </div>
+        `;
+      } else if (resp.symptoms && resp.symptoms.length > 0) {
+        resultsHTML += `
+          <div class="section-card fade-in">
+            <div class="section-header">
+              <div class="section-icon amber">🔍</div>
+              <span class="section-title">Primary Symptoms (Ayurvedic)</span>
+            </div>
+            <div class="tag-list">
+              ${resp.symptoms.map(symptom => 
                 `<span class="tag-item symptom">${escapeHTML(symptom)}</span>`
               ).join('')}
             </div>
@@ -1089,7 +1138,7 @@
             <div class="remedy-grid">
               ${resp.ottamooli_remedies.map(remedy => `
                 <div class="remedy-card">
-                  <div class="remedy-name">${escapeHTML(remedy.english_name || '')}</div>
+                  <div class="remedy-name">${escapeHTML(remedy.english_name || remedy.name || '')}</div>
                   ${remedy.sanskrit_name ? `<div class="remedy-sanskrit">${escapeHTML(remedy.sanskrit_name)}</div>` : ''}
                   <div class="remedy-details">
                     ${remedy.part_used ? `<div class="remedy-detail"><span class="remedy-detail-label">Part:</span> ${escapeHTML(remedy.part_used)}</div>` : ''}
@@ -1117,7 +1166,7 @@
                 <div class="formulation-card">
                   <div class="form-icon">📜</div>
                   <div class="form-info">
-                    <h4>${escapeHTML(form.sanskrit_name || '')}</h4>
+                    <h4>${escapeHTML(form.sanskrit_name || form.name || '')}</h4>
                     ${form.english_name ? `<div class="form-english">${escapeHTML(form.english_name)}</div>` : ''}
                     <div class="form-meta">
                       ${form.dosage ? `<span><strong>Dose:</strong> ${escapeHTML(form.dosage)}</span>` : ''}
@@ -1144,7 +1193,7 @@
             <div class="remedy-grid">
               ${resp.panchakarma_therapies.map(px => `
                 <div class="panchak-card">
-                  <h4>${escapeHTML(px.therapy_name || '')}</h4>
+                  <h4>${escapeHTML(px.therapy_name || px.name || '')}</h4>
                   ${px.description ? `<p>${escapeHTML(px.description)}</p>` : ''}
                   ${px.indications ? `<div class="panchak-indication">Indications: ${escapeHTML(px.indications)}</div>` : ''}
                 </div>
@@ -1246,6 +1295,21 @@
                 </div>
               `).join('')}
             </div>
+          </div>
+        `;
+      }
+      
+      // If no detailed results were found, show a basic message
+      if (resultsHTML === '') {
+        resultsHTML = `
+          <div class="section-card fade-in">
+            <div class="section-header">
+              <div class="section-icon green">ℹ️</div>
+              <span class="section-title">Analysis Complete</span>
+            </div>
+            <p class="desc-text">Your symptoms "${escapeHTML(originalSymptoms)}" have been analyzed.</p>
+            <p class="desc-text">The AI matched your symptoms to Ayurvedic concepts, but detailed treatment information is not available in the response.</p>
+            <div class="modern-corr">🔍 Check browser console for full API response structure</div>
           </div>
         `;
       }
