@@ -175,8 +175,10 @@ Analyzes a patient narrative and returns Ayurvedic treatment recommendations.
 {
   "input_text": "patient complains of severe headache and nausea",
   "clinical_entities": [
-    {"word": "headache", "score": 0.98, "entity_group": "Symptom"},
-    {"word": "nausea", "score": 0.95, "entity_group": "Symptom"}
+    {"word": "patient complains", "score": 1.0, "entity_group": "ENTITY"},
+    {"word": "severe", "score": 1.0, "entity_group": "ENTITY"},
+    {"word": "headache", "score": 1.0, "entity_group": "ENTITY"},
+    {"word": "nausea", "score": 1.0, "entity_group": "ENTITY"}
   ],
   "umls_cui": "C0018681",
   "snomed_code": "25064002",
@@ -221,9 +223,10 @@ With the warmup strategy, the GPU is only active during user sessions, not 24/7.
 
 ## Key Dependencies
 
-| Package | Purpose |
-|---------|---------|
-| `vllm` | High-throughput LLM serving with PagedAttention |
-| `transformers` | NER pipeline (`d4data/biomedical-ner-all`) |
-| `modal` | Serverless GPU/CPU containers |
-| `fastapi` | ASGI web framework |
+| Package | Container | Purpose |
+|---------|-----------|---------|
+| `scispacy` + `en_core_sci_lg` | CPU | Biomedical NER entity extraction |
+| `transformers` | GPU | AyurParam LLM inference (native generation) |
+| `modal` | both | Serverless GPU/CPU containers |
+| `fastapi` | CPU | ASGI web framework |
+| `requests` | CPU | UMLS API calls |
