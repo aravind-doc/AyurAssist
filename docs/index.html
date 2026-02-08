@@ -1,4 +1,3 @@
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -822,20 +821,23 @@
     const diseaseHeader = document.getElementById('diseaseHeader');
     const disclaimerFooter = document.getElementById('disclaimerFooter');
 
-    // Wake up GPU container while the user types (fire-and-forget)
-    fetch(API_BASE + '/warmup').catch(() => {});
-
-    // Enable/disable button based on input
-    input.addEventListener('input', () => {
+    // Function to update button state
+    function updateButtonState() {
       analyzeBtn.disabled = input.value.trim().length === 0;
-    });
+    }
+
+    // Initialize button state on page load
+    updateButtonState();
+
+    // Update button state when user types
+    input.addEventListener('input', updateButtonState);
 
     // Example button click handler
     examples.addEventListener('click', (e) => {
       if (e.target.classList.contains('example-btn')) {
         const value = e.target.getAttribute('data-value');
         input.value = value;
-        analyzeBtn.disabled = false;
+        updateButtonState();
       }
     });
 
@@ -892,7 +894,7 @@
         console.log('API Response:', data);
         
         // Process and display the API data
-        displayResultsFromAPI(data);
+        displayResultsFromAPI(data, symptoms);
         
       } catch (err) {
         const errorMsg = err.name === 'AbortError' 
@@ -965,7 +967,9 @@
       `;
     }
 
-    function displayResultsFromAPI(data) {
+    function displayResultsFromAPI(data, originalSymptoms) {
       // Extract data from API response
       const treatment = data.results?.[0]?.treatment_info || {};
       const resp = treatment.ayurparam_responses || {};
+      
+      // Show all
