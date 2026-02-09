@@ -1,146 +1,85 @@
+/* ─── Base Styles ─── */
 :root {
-    --cream: #F9F7F0;
-    --forest: #416422;
-    --sage: #A3B18A;
-    --gold: #D4AF37;
-    --white: #FFFFFF;
-    --alert-red: #fde8e8;
-    --text-dark: #2d3436;
+  --bg-cream: #F7F3ED;
+  --bg-warm: #EDE8DF;
+  --bg-card: #FFFFFF;
+  --green-deep: #2D5016;
+  --green-mid: #4A7C28;
+  --green-soft: #6B9B3A;
+  --green-light: #E8F0DE;
+  --green-glow: #A4C639;
+  --amber: #D4A017;
+  --amber-soft: #FFF3D0;
+  --terra: #8B4513;
+  --terra-soft: #F5E6D3;
+  --red-warn: #C0392B;
+  --red-soft: #FDEDEB;
+  --text-dark: #1A1A1A;
+  --text-mid: #4A4A4A;
+  --text-light: #7A7A7A;
+  --border: #E0D8CC;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.08);
+  --radius-md: 12px;
+  --radius-lg: 20px;
 }
 
-body {
-    background-color: var(--cream);
-    color: var(--text-dark);
-    font-family: 'Inter', sans-serif;
-    margin: 0;
-    padding: 0;
-    line-height: 1.6;
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'DM Sans', sans-serif; background: var(--bg-cream); color: var(--text-dark); overflow-x: hidden; }
+.hidden { display: none !important; }
+
+.app-container { max-width: 900px; margin: 0 auto; padding: 24px 20px 60px; }
+
+/* ─── Header & Search ─── */
+.header { text-align: center; padding: 48px 0 36px; }
+.header-badge { display: inline-flex; align-items: center; background: var(--green-light); color: var(--green-deep); font-size: 11px; font-weight: 600; text-transform: uppercase; padding: 6px 16px; border-radius: 100px; margin-bottom: 16px; }
+.header h1 { font-family: 'Fraunces', serif; font-size: 44px; color: var(--green-deep); }
+.header h1 span { color: var(--green-soft); font-style: italic; font-weight: 300; }
+.search-section { background: var(--bg-card); border-radius: 28px; padding: 32px; box-shadow: var(--shadow-md); margin-bottom: 28px; }
+.search-input { width: 100%; padding: 14px 20px; border: 2px solid var(--border); border-radius: 12px; font-size: 16px; outline: none; margin-bottom: 10px; }
+.search-input:focus { border-color: var(--green-mid); }
+.search-btn { width: 100%; padding: 14px; background: var(--green-mid); color: white; border: none; border-radius: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.search-btn:disabled { opacity: 0.6; }
+
+/* ─── Section Cards ─── */
+.section-card { background: var(--bg-card); border-radius: var(--radius-lg); padding: 24px; box-shadow: var(--shadow-sm); margin-bottom: 12px; border: 1px solid var(--border); overflow-wrap: break-word; }
+.section-header { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+.section-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+.section-icon.green { background: var(--green-light); }
+.section-icon.amber { background: var(--amber-soft); }
+.section-icon.terra { background: var(--terra-soft); }
+.section-icon.red { background: var(--red-soft); }
+.section-title { font-family: 'Fraunces', serif; font-size: 18px; font-weight: 600; }
+
+/* ─── Text & Lists ─── */
+.desc-text, .raw-text { font-size: 15px; line-height: 1.6; color: var(--text-mid); }
+.raw-text { white-space: pre-wrap; } /* Preserves line breaks in Ottamooli */
+
+/* ─── Diet Tags ─── */
+.diet-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+.diet-col h4 { font-size: 13px; font-weight: 700; text-transform: uppercase; margin-bottom: 10px; }
+.diet-col.favor h4 { color: var(--green-mid); }
+.diet-col.avoid h4 { color: var(--red-warn); }
+.diet-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+.diet-tag { padding: 6px 12px; border-radius: 20px; font-size: 13px; line-height: 1.4; }
+.diet-tag.good { background: var(--green-light); color: var(--green-deep); }
+.diet-tag.bad { background: var(--red-soft); color: var(--red-warn); }
+
+/* ─── Lifestyle & Yoga ─── */
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.lifestyle-list { list-style: none; }
+.lifestyle-list li { padding: 6px 0; font-size: 14px; color: var(--text-mid); display: flex; gap: 8px; }
+.lifestyle-list li::before { content: '▸'; color: var(--green-soft); }
+.yoga-tag { display: inline-block; background: #F0F7E8; color: var(--green-deep); padding: 6px 12px; border-radius: 8px; font-size: 13px; margin: 0 4px 4px 0; }
+
+/* ─── Mobile ─── */
+@media (max-width: 600px) {
+    .two-col, .diet-grid { grid-template-columns: 1fr; }
+    .header h1 { font-size: 32px; }
 }
 
-h1, h2, h3, .sanskrit-title {
-    font-family: 'Playfair Display', serif;
-    color: var(--forest);
-}
-
-.main-container {
-    max-width: 1100px;
-    margin: 2rem auto;
-    padding: 0 20px;
-}
-
-/* Header */
-.header-container {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1.5rem 2rem;
-    background: var(--white);
-    border-bottom: 1px solid rgba(65, 100, 34, 0.1);
-}
-
-.logo { display: flex; align-items: center; gap: 10px; }
-.icon-gold { color: var(--gold); }
-
-/* Card Styling */
-.card {
-    background: var(--white);
-    border-radius: 20px;
-    padding: 24px;
-    margin-bottom: 20px;
-    box-shadow: 0 10px 30px rgba(65, 100, 34, 0.05);
-    border: 1px solid rgba(65, 100, 34, 0.05);
-}
-
-/* Diagnostic Input */
-textarea {
-    width: 100%;
-    height: 120px;
-    border: 1px solid #e0e0e0;
-    border-radius: 12px;
-    padding: 15px;
-    font-size: 1rem;
-    resize: none;
-    margin-top: 10px;
-    outline-color: var(--sage);
-}
-
-.entity-container {
-    display: flex;
-    gap: 10px;
-    margin-top: 15px;
-    min-height: 32px;
-}
-
-.pill {
-    background: var(--sage);
-    color: var(--forest);
-    padding: 6px 14px;
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: 600;
-}
-
-/* Mapping Card */
-.mapping-card {
-    background: linear-gradient(135deg, #ffffff 0%, #f4f6f1 100%);
-    border-left: 5px solid var(--gold);
-}
-
-.mapping-grid {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.hidden { display: none; }
-
-/* Bento Grid */
-.bento-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-}
-
-.span-two { grid-column: span 2; }
-
-/* Table */
-.med-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 15px;
-}
-
-.med-table th {
-    text-align: left;
-    color: var(--forest);
-    padding: 12px;
-    border-bottom: 2px solid var(--cream);
-}
-
-.med-table td {
-    padding: 12px;
-    border-bottom: 1px solid var(--cream);
-}
-
-/* Alerts */
-.alert-box {
-    background: var(--alert-red);
-    border-left: 4px solid #c0392b;
-    padding: 20px;
-    border-radius: 15px;
-}
-
-.alert-header { display: flex; align-items: center; gap: 8px; color: #c0392b; }
-
-.disclaimer {
-    text-align: center;
-    font-size: 12px;
-    color: #95a5a6;
-    margin-top: 40px;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-    .bento-grid, .mapping-grid { grid-template-columns: 1fr; }
-    .span-two { grid-column: span 1; }
+/* ─── Fix for the Guggulu repetition ─── */
+.remedy-grid {
+    max-height: 400px;
+    overflow-y: auto; /* Scroll if list is huge */
 }
