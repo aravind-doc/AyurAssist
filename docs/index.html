@@ -890,6 +890,8 @@
       try {
         // API CALL
         console.log('📤 Sending request to API:', symptoms);
+        console.log('📤 API URL:', API_BASE);
+        
         const response = await fetch(API_BASE, {
           method: 'POST',
           headers: { 
@@ -902,12 +904,18 @@
 
         clearTimeout(timeout);
 
+        console.log('📥 Response Status:', response.status);
+        console.log('📥 Response OK:', response.ok);
+
         if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          const errorText = await response.text();
+          console.error('❌ Response Error Text:', errorText);
+          throw new Error(`HTTP ${response.status}: ${errorText}`);
         }
 
         const data = await response.json();
-        console.log('📥 API Response:', data);
+        console.log('📥 API Response (full):', data);
+        console.log('📥 API Response (stringified):', JSON.stringify(data, null, 2));
         
         // Check if response has meaningful data
         if (!data || Object.keys(data).length === 0) {
@@ -919,13 +927,23 @@
         
       } catch (err) {
         console.error('❌ API Error:', err);
-        const errorMsg = err.name === 'AbortError' 
-          ? 'Request timeout. AI is processing, please try again.' 
-          : `API Error: ${err.message}`;
+        console.error('❌ Error Name:', err.name);
+        console.error('❌ Error Message:', err.message);
+        console.error('❌ Error Stack:', err.stack);
+        
+        let errorMsg;
+        if (err.name === 'AbortError') {
+          errorMsg = 'Request timeout. AI is processing, please try again.';
+        } else if (err.name === 'TypeError' && err.message.includes('Failed to fetch')) {
+          errorMsg = 'Network error: Cannot reach API server. Check if API is running and CORS is enabled.';
+        } else {
+          errorMsg = `API Error: ${err.message}`;
+        }
+        
         showError('⚠️ ' + errorMsg);
         
         // Fallback to demo
-        console.log('🔄 Showing demo mode');
+        console.log('🔄 Showing demo mode due to error');
         fallbackToDemo(symptoms);
       } finally {
         analyzeBtn.disabled = false;
@@ -1046,6 +1064,42 @@
               reference: 'Bhaishajya Ratnavali'
             }
           ]
+        },
+        'vomiting': {
+          ita_code: 'ITA-CHARDI',
+          english_name: 'Chardi (Vomiting)',
+          sanskrit_name: 'छर्दि',
+          dosha_imbalance: 'Pitta, Kapha',
+          snomed_code: '422400008',
+          snomed_name: 'Vomiting',
+          disease_description: 'Chardi is expulsion of stomach contents through mouth. It can be caused by vitiation of doshas, improper diet, toxins, or psychological factors. Ayurveda classifies five types based on dosha involvement.',
+          modern_correlate: 'Nausea and Vomiting, Gastritis',
+          primary_symptoms: ['Nausea', 'Retching', 'Abdominal discomfort', 'Loss of appetite', 'Weakness'],
+          ottamooli_remedies: [
+            {
+              english_name: 'Ginger (Zingiber)',
+              sanskrit_name: 'आर्द्रक',
+              part_used: 'Rhizome',
+              dosage: '1-2 grams',
+              preparation: 'Fresh juice with honey',
+              actions: 'Antiemetic, Digestive'
+            }
+          ],
+          formulations: [
+            {
+              sanskrit_name: 'सूतशेखर रस',
+              english_name: 'Sutshekhar Ras',
+              dosage: '125-250mg twice daily',
+              duration: '7-14 days',
+              anupana: 'Honey',
+              reference: 'Rasaratna Samucchaya'
+            }
+          ],
+          pathya_foods: ['Light rice gruel', 'Coconut water', 'Pomegranate juice', 'Cumin water'],
+          apathya_foods: ['Heavy oily foods', 'Spicy food', 'Sour items', 'Alcohol'],
+          dietary_note: 'Take small frequent meals. Avoid drinking water immediately after food.',
+          lifestyle_recommendations: ['Rest', 'Avoid strong odors', 'Stay hydrated', 'Eat slowly'],
+          prognosis: 'Usually resolves within 3-7 days with proper treatment.'
         }
       };
       
@@ -1084,32 +1138,66 @@
 
     function displayResultsFromAPI(data, originalSymptoms) {
       console.log('🔍 Processing API data:', data);
+      console.log('🔍 Data type:', typeof data);
+      console.log('🔍 Data keys:', Object.keys(data));
       
-      // Extract treatment info from API response
-      let treatment = {};
       let resp = {};
       
-      if (data.results && data.results[0] && data.results[0].treatment_info) {
-        treatment = data.results[0].treatment_info;
-        resp = treatment.ayurparam_responses || {};
+      // Try multiple possible response structures
+      if (data.results && Array.isArray(data.results) && data.results.length > 0) {
+        console.log('🔍 Found data.results array');
+        const firstResult = data.results[0];
+        console.log('🔍 First result:', firstResult);
+        
+        if (firstResult.treatment_info) {
+          console.log('🔍 Found treatment_info');
+          const treatment = firstResult.treatment_info;
+          resp = treatment.ayurparam_responses || treatment;
+        } else {
+          resp = firstResult;
+        }
+      } else if (data.treatment_info) {
+        console.log('🔍 Found data.treatment_info');
+        resp = data.treatment_info.ayurparam_responses || data.treatment_info;
+      } else if (data.ayurparam_responses) {
+        console.log('🔍 Found data.ayurparam_responses');
+        resp = data.ayurparam_responses;
+      } else if (data.ita_code) {
+        console.log('🔍 Found data.ita_code at root');
+        resp = data;
       } else {
-        treatment = data;
-        resp = data.ayurparam_responses || data;
+        console.log('🔍 Using data as-is');
+        resp = data;
       }
       
+      console.log('🔍 Extracted response object:', resp);
+      console.log('🔍 Response keys:', Object.keys(resp));
+      console.log('🔍 ITA Code:', resp.ita_code);
+      console.log('🔍 English Name:', resp.english_name);
+      
       // Check if API returned meaningful data
-      const hasRealData = resp.ita_code && resp.ita_code !== 'ITA-Unknown';
+      const hasRealData = resp && 
+                          resp.ita_code && 
+                          resp.ita_code !== 'ITA-Unknown' && 
+                          resp.ita_code !== 'ITA-DEMO' &&
+                          resp.ita_code !== '';
+      
+      console.log('🔍 Has real data:', hasRealData);
       
       if (!hasRealData) {
-        console.log('⚠️ API returned placeholder data, showing demo');
+        console.log('⚠️ API returned placeholder/empty data, showing demo');
+        console.log('⚠️ ITA code was:', resp.ita_code);
         const demoData = getDemoDataForSymptom(originalSymptoms);
         displayResults(demoData, originalSymptoms, true);
       } else {
+        console.log('✅ Displaying real API data');
         displayResults(resp, originalSymptoms, false);
       }
     }
 
     function displayResults(resp, originalSymptoms, isDemo) {
+      console.log('🎨 Displaying results:', { isDemo, resp });
+      
       // Show all sections
       nerStrip.classList.remove('hidden');
       matchBanner.classList.remove('hidden');
@@ -1124,13 +1212,13 @@
       `;
       
       // Fill match banner
-      document.getElementById('matchDetails').textContent = `Detected: ${escapeHTML(originalSymptoms)} → ${resp.ita_code}`;
+      document.getElementById('matchDetails').textContent = `Detected: ${escapeHTML(originalSymptoms)} → ${resp.ita_code || 'ITA-UNKNOWN'}`;
       document.getElementById('matchPercent').textContent = '100%';
       
       // Fill disease header
-      document.getElementById('itaCode').textContent = resp.ita_code;
-      document.getElementById('diseaseName').textContent = resp.english_name;
-      document.getElementById('sanskritName').textContent = resp.sanskrit_name;
+      document.getElementById('itaCode').textContent = resp.ita_code || 'ITA-UNKNOWN';
+      document.getElementById('diseaseName').textContent = resp.english_name || 'Unknown Condition';
+      document.getElementById('sanskritName').textContent = resp.sanskrit_name || 'संस्कृत नाम';
       
       // Fill dosha information
       const doshaLine = document.querySelector('.dosha-line');
@@ -1144,7 +1232,7 @@
       
       // Fill SNOMED info
       document.getElementById('snomedCode').textContent = resp.snomed_code || '00000000';
-      document.getElementById('snomedName').textContent = resp.snomed_name || resp.english_name;
+      document.getElementById('snomedName').textContent = resp.snomed_name || resp.english_name || 'Unknown';
       
       // Build results HTML
       let resultsHTML = '';
