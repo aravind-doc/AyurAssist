@@ -1,129 +1,91 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AyurAssist | Clinical Decision Support</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:ital,wght@0,600;1,600&display=swap" rel="stylesheet">
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AyurAssist — UI Design</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,700;1,9..144,400&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <header>
-        <div class="header-container">
-            <div class="logo">
-                <i data-lucide="leaf" class="icon-gold"></i>
-                <h1>AyurAssist</h1>
-            </div>
-            <div class="toggle-container">
-                <span>Clinical Mode</span>
-                <div class="switch"></div>
-            </div>
-        </div>
-    </header>
 
-    <main class="main-container">
-        <section class="card diagnostic-card">
-            <div class="card-header">
-                <i data-lucide="brain-circuit"></i>
-                <h2>Diagnostic Entry</h2>
-            </div>
-            <textarea id="symptomInput" placeholder="Enter patient symptoms (e.g., 'difficulty breathing and wheezing')..."></textarea>
-            <div id="entityOverlay" class="entity-container">
-                </div>
-        </section>
+<div class="app-container">
 
-        <section id="mappingCard" class="card mapping-card hidden">
-            <div class="mapping-grid">
-                <div class="mapping-brand">
-                    <span class="standard-label">SNOMED CT: 267036007</span>
-                    <h3 class="sanskrit-title">Śvašah (Dyspnoea)</h3>
-                    <small>Standard: ITA-5.20.1</small>
-                </div>
-                <div class="pathogenesis-flow">
-                    <label>Pathogenesis (Samprapti)</label>
-                    <div class="flow-steps">
-                        <span>Vata & Kapha</span>
-                        <i data-lucide="arrow-right"></i>
-                        <span>Pranavaha Srotas</span>
-                    </div>
-                </div>
-            </div>
-        </section>
+  <header class="header fade-in">
+    <div class="header-badge">🌿 WHO ITA Standards · SNOMED CT Mapped</div>
+    <h1>Ayur<span>Assist</span></h1>
+    <p class="header-sub">Ayurveda–SNOMED Clinical Decision Support</p>
+    <div class="header-divider"></div>
+  </header>
 
-        <div class="card grid-item">
-    <h3><i data-lucide="activity"></i> Nidaña & Rupa</h3>
-    <div class="list-section">
-        <div class="content-block">
-            <strong>Root Causes (Nidāna):</strong>
-            <p>Caused by excessive intake of hot, spicy, or fermented foods.</p>
-        </div>
-        <div class="content-block">
-            <strong>Symptoms (Rupa):</strong>
-            <p>Chest tightness, cough, restlessness.</p>
-        </div>
+  <section class="search-section fade-in">
+    <p class="search-label">Describe your symptoms</p>
+    <p class="search-hint">Enter symptoms in plain language — our NLP engine will identify medical entities</p>
+    
+    <div class="examples" id="examples" style="margin-bottom: 15px; display: flex; gap: 8px; flex-wrap: wrap;">
+        <button class="example-btn" data-value="difficulty breathing and wheezing">asthma</button>
+        <button class="example-btn" data-value="severe headache and sensitivity to light">migraine</button>
+        <button class="example-btn" data-value="joint pain and stiffness">arthritis</button>
     </div>
+
+    <div class="search-bar">
+      <input class="search-input" id="symptomInput" type="text" placeholder="e.g., headache, stomach pain, cough with fever...">
+      <button class="search-btn" id="analyzeBtn" disabled>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        Analyze
+      </button>
+    </div>
+    <div class="search-footer">
+      <span class="tech-pill">🧠 Bio_ClinicalBERT NER</span>
+      <span class="tech-pill">🤖 AyurParam LLM</span>
+      <span class="tech-pill">📋 226 ITA Conditions</span>
+    </div>
+
+    <div id="loading" class="hidden" style="margin-top:20px; text-align:center; color: var(--text-mid);">
+        <p>🔄 AI is analyzing your symptoms... This may take 30–90s</p>
+    </div>
+    
+    <div id="error" class="hidden" style="margin-top:20px; padding:15px; background:var(--red-soft); color:var(--red-warn); border-radius:8px;"></div>
+  </section>
+
+  <div id="nerStrip" class="ner-strip hidden fade-in">
+    <span class="ner-strip-label">Detected Entities</span>
+    </div>
+
+  <div id="matchBanner" class="match-banner hidden fade-in">
+    <div class="match-banner-left">
+      <div class="match-icon">✓</div>
+      <div class="match-text">
+        <h3>Ayurvedic Match Found</h3>
+        <p id="matchDetails">Detected: ...</p>
+      </div>
+    </div>
+    <div class="match-percent" id="matchPercent">100%</div>
+  </div>
+
+  <div id="diseaseHeader" class="disease-header hidden fade-in">
+    <span class="ita-code" id="itaCode">ITA</span>
+    <h2 id="diseaseName">Condition Name</h2>
+    <p class="sanskrit" id="sanskritName">Sanskrit Name</p>
+    <div class="dosha-line" id="doshaLine">
+      </div>
+    <div class="snomed-row" id="snomedRow">
+      <span>SNOMED CT:</span>
+      <span class="snomed-code" id="snomedCode"></span>
+      <span id="snomedName"></span>
+    </div>
+  </div>
+
+  <div id="results" class="hidden">
+    </div>
+
+  <div id="disclaimerFooter" class="disclaimer-bar hidden fade-in">
+    ⚕️ This information is for <strong>educational purposes only</strong>. Always consult a qualified Ayurvedic practitioner before starting any treatment.
+    <br><span style="font-size:11px;margin-top:4px;display:inline-block;">AyurAssist v2.0 · NLP + LLM Powered Clinical Decision Support · WHO ITA · SNOMED CT</span>
+  </div>
+
 </div>
 
-            <div class="card grid-item span-two">
-                <h3><i data-lucide="beaker"></i> Medicinal Interventions</h3>
-                <table class="med-table">
-                    <thead>
-                        <tr>
-                            <th>Remedy Type</th>
-                            <th>Treatment</th>
-                            <th>Preparation & Dosage</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>Ottamooli</td>
-                            <td>Vasa (Malabar Nut)</td>
-                            <td>10–20 ml juice with honey</td>
-                        </tr>
-                        <tr>
-                            <td>Classical</td>
-                            <td>Śvašakuthara Rasa</td>
-                            <td>125–250 mg with honey</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <div class="card grid-item">
-                <h3><i data-lucide="sparkles"></i> Therapies & Lifestyle</h3>
-                <div class="lifestyle-tags">
-                    <span class="pathya">Favor: Ginger Tea</span>
-                    <span class="apathya">Avoid: Curd</span>
-                </div>
-                <div class="yoga-list">
-                    <span>🧘 Anulom Vilom</span>
-                    <span>🧘 Bhastrika</span>
-                </div>
-            </div>
-        </div>
-
-        <div class="footer-grid">
-            <div class="card prognosis-card">
-                <label>Prognosis: Tamaka Shvasa</label>
-                <div class="progress-container">
-                    <div class="progress-bar"></div>
-                </div>
-                <span class="status-text">Yapya (Manageable)</span>
-            </div>
-            
-            <div class="alert-box">
-                <div class="alert-header">
-                    <i data-lucide="alert-circle"></i>
-                    <h4>Critical Alerts</h4>
-                </div>
-                <p>Blue lips/nails, confusion, severe breathlessness at rest.</p>
-            </div>
-        </div>
-        
-        <p class="disclaimer"><i>This interface is for educational use; a qualified Ayurvedic practitioner must be consulted.</i></p>
-    </main>
-
-    <script src="script.js"></script>
+<script src="app.js"></script>
 </body>
 </html>
