@@ -3,806 +3,89 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AyurAssist — AI-Powered Ayurveda Clinical Decision Support</title>
+  <title>AyurAssist — UI Design</title>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,700;1,9..144,400&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <style>
-    :root{--bg-cream:#F7F3ED;--bg-warm:#EDE8DF;--bg-card:#FFF;--green-deep:#2D5016;--green-mid:#4A7C28;--green-soft:#6B9B3A;--green-light:#E8F0DE;--green-glow:#A4C639;--amber:#D4A017;--amber-soft:#FFF3D0;--terra:#8B4513;--terra-soft:#F5E6D3;--red-warn:#C0392B;--red-soft:#FDEDEB;--blue-soft:#E3F2FD;--text-dark:#1A1A1A;--text-mid:#4A4A4A;--text-light:#7A7A7A;--border:#E0D8CC;--shadow-sm:0 1px 3px rgba(0,0,0,.06);--shadow-md:0 4px 16px rgba(0,0,0,.08);--r-sm:8px;--r-md:12px;--r-lg:20px;--r-xl:28px}
-    *{margin:0;padding:0;box-sizing:border-box}
-    body{font-family:'DM Sans',sans-serif;background:var(--bg-cream);color:var(--text-dark);min-height:100vh;overflow-x:hidden}
-    body::before{content:'';position:fixed;inset:0;background:radial-gradient(circle at 15% 20%,rgba(74,124,40,.04) 0%,transparent 50%),radial-gradient(circle at 85% 80%,rgba(212,160,23,.04) 0%,transparent 50%);pointer-events:none;z-index:0}
-    .app{max-width:920px;margin:0 auto;padding:24px 20px 60px;position:relative;z-index:1}
-    .hidden{display:none!important}
-    .header{text-align:center;padding:48px 0 36px}
-    .header-badge{display:inline-flex;align-items:center;gap:6px;background:var(--green-light);color:var(--green-deep);font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;padding:6px 16px;border-radius:100px;margin-bottom:16px}
-    .header h1{font-family:'Fraunces',serif;font-size:44px;font-weight:700;color:var(--green-deep);letter-spacing:-1px}
-    .header h1 span{color:var(--green-soft);font-weight:300;font-style:italic}
-    .header-sub{font-size:15px;color:var(--text-light);margin-top:8px}
-    .header-div{width:60px;height:3px;background:linear-gradient(90deg,var(--green-soft),var(--amber));margin:20px auto 0;border-radius:2px}
-    .search-section{background:var(--bg-card);border-radius:var(--r-xl);padding:32px;box-shadow:var(--shadow-md);border:1px solid var(--border);margin-bottom:28px}
-    .search-label{font-family:'Fraunces',serif;font-size:20px;font-weight:500;margin-bottom:4px}
-    .search-hint{font-size:13px;color:var(--text-light);margin-bottom:16px}
-    .examples{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
-    .example-btn{padding:8px 16px;background:var(--green-light);color:var(--green-deep);border:none;border-radius:20px;font-size:14px;cursor:pointer;transition:.2s;font-family:inherit}
-    .example-btn:hover{background:var(--green-mid);color:#fff}
-    .search-bar{display:flex;gap:10px}
-    .search-input{flex:1;padding:14px 20px;font-size:16px;font-family:inherit;border:2px solid var(--border);border-radius:var(--r-md);background:var(--bg-cream);color:var(--text-dark);outline:none;transition:.25s}
-    .search-input:focus{border-color:var(--green-mid);background:#fff;box-shadow:0 0 0 4px rgba(74,124,40,.1)}
-    .search-btn{padding:14px 28px;background:linear-gradient(135deg,var(--green-deep),var(--green-mid));color:#fff;border:none;border-radius:var(--r-md);font-size:15px;font-weight:600;font-family:inherit;cursor:pointer;display:flex;align-items:center;gap:8px;transition:.25s;white-space:nowrap}
-    .search-btn:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(45,80,22,.3)}
-    .search-btn:disabled{opacity:.6;cursor:not-allowed;transform:none!important;box-shadow:none!important}
-    .search-footer{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:12px;color:var(--text-light);flex-wrap:wrap}
-    .tech-pill{display:inline-flex;align-items:center;gap:4px;background:var(--bg-warm);padding:3px 10px;border-radius:100px;font-size:11px;font-weight:500;color:var(--text-mid)}
-    .loading{margin-top:16px;padding:20px;text-align:center;font-size:14px;color:var(--text-light);background:var(--bg-card);border-radius:var(--r-md);border:1px solid var(--border)}
-    .error-alert{margin-top:16px;padding:12px 16px;background:var(--red-soft);color:var(--red-warn);border-radius:var(--r-sm);font-size:13px;border-left:4px solid var(--red-warn)}
-    .ner-strip{display:flex;align-items:center;gap:8px;padding:12px 20px;background:var(--green-light);border-radius:var(--r-md);margin-bottom:20px;flex-wrap:wrap}
-    .ner-strip-label{font-size:12px;font-weight:600;color:var(--green-deep);text-transform:uppercase;letter-spacing:.8px}
-    .ner-tag{display:inline-flex;align-items:center;gap:4px;padding:4px 12px;background:#fff;border:1px solid rgba(74,124,40,.2);border-radius:100px;font-size:13px;font-weight:500;color:var(--green-deep)}
-    .ner-tag .score{font-size:11px;color:var(--text-light);font-weight:400}
-    .match-banner{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:linear-gradient(135deg,var(--green-deep),var(--green-mid));border-radius:var(--r-md);margin-bottom:20px;color:#fff}
-    .match-banner-left{display:flex;align-items:center;gap:10px}
-    .match-icon{width:36px;height:36px;background:rgba(255,255,255,.15);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px}
-    .match-text h3{font-size:16px;font-weight:600}.match-text p{font-size:12px;opacity:.8}
-    .match-percent{font-family:'Fraunces',serif;font-size:28px;font-weight:700;color:var(--green-glow)}
-    .disease-header{background:var(--bg-card);border-radius:var(--r-lg);padding:28px;box-shadow:var(--shadow-sm);border:1px solid var(--border);margin-bottom:16px}
-    .ita-code{display:inline-block;font-size:11px;font-weight:600;color:var(--amber);background:var(--amber-soft);padding:3px 10px;border-radius:100px;letter-spacing:.5px;margin-bottom:10px}
-    .disease-header h2{font-family:'Fraunces',serif;font-size:30px;font-weight:700;color:var(--green-deep);line-height:1.2}
-    .disease-header .sanskrit{font-family:'Fraunces',serif;font-size:17px;font-style:italic;color:var(--terra);margin-top:2px}
-    .dosha-line{display:flex;align-items:center;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
-    .dosha-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
-    .dosha-dot.vata{background:#5B8DEF}.dosha-dot.pitta{background:#FF7043}.dosha-dot.kapha{background:#4CAF50}
-    .dosha-text{font-size:14px;color:var(--text-mid);font-weight:500}
-    .snomed-row{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;color:var(--text-light)}
-    .snomed-code{font-family:monospace;background:var(--bg-warm);padding:2px 8px;border-radius:4px;font-size:12px;font-weight:600;color:var(--text-mid)}
-    .sc{background:var(--bg-card);border-radius:var(--r-lg);padding:24px;box-shadow:var(--shadow-sm);border:1px solid var(--border);margin-bottom:12px}
-    .sc-head{display:flex;align-items:center;gap:10px;margin-bottom:16px}
-    .sc-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
-    .sc-icon.green{background:var(--green-light)}.sc-icon.amber{background:var(--amber-soft)}.sc-icon.terra{background:var(--terra-soft)}.sc-icon.red{background:var(--red-soft)}.sc-icon.blue{background:var(--blue-soft)}
-    .sc-title{font-family:'Fraunces',serif;font-size:18px;font-weight:600;color:var(--text-dark)}
-    .desc-text{font-size:15px;line-height:1.65;color:var(--text-mid)}
-    .two-col{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-    .tag-list{display:flex;flex-wrap:wrap;gap:8px}
-    .tag-nidana{padding:6px 14px;background:var(--bg-cream);border:1px solid var(--border);border-radius:100px;font-size:13px;color:var(--text-mid)}
-    .tag-symptom{padding:6px 14px;background:#FFF8F0;border:1px solid #F0D8B8;border-radius:100px;font-size:13px;color:var(--terra)}
-    .remedy-grid{display:grid;gap:12px}
-    .remedy-card{background:var(--bg-cream);border:1px solid var(--border);border-radius:var(--r-md);padding:20px;transition:.2s}
-    .remedy-card:hover{border-color:var(--green-soft);box-shadow:var(--shadow-sm)}
-    .remedy-name{font-weight:600;font-size:16px;color:var(--green-deep);margin-bottom:2px}
-    .remedy-sanskrit{font-family:'Fraunces',serif;font-style:italic;font-size:13px;color:var(--terra);margin-bottom:12px}
-    .remedy-fields{display:grid;grid-template-columns:1fr 1fr;gap:10px 20px}
-    .rf{font-size:13px;color:var(--text-mid)}.rf-label{display:block;font-size:11px;font-weight:600;color:var(--text-light);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px}
-    .form-card{background:var(--bg-cream);border:1px solid var(--border);border-radius:var(--r-md);padding:20px}
-    .form-card h4{font-family:'Fraunces',serif;font-size:16px;font-weight:600;color:var(--green-deep);margin-bottom:8px}
-    .form-desc{font-size:13px;color:var(--text-mid);line-height:1.6;margin-bottom:8px}
-    .form-meta{display:flex;gap:12px;font-size:12px;color:var(--text-mid);flex-wrap:wrap}
-    .form-meta span{display:inline-flex;align-items:center;gap:4px;background:var(--bg-warm);padding:3px 10px;border-radius:100px}
-    .ref-badge{font-size:11px;padding:2px 8px;background:var(--amber-soft);border-radius:4px;color:var(--amber);font-weight:600;margin-top:6px;display:inline-block}
-    .pk-card{padding:16px;background:var(--bg-cream);border:1px solid var(--border);border-radius:var(--r-md);border-left:3px solid var(--amber)}
-    .pk-card h4{font-size:15px;font-weight:600;color:var(--text-dark);margin-bottom:4px}.pk-card p{font-size:13px;color:var(--text-mid);line-height:1.5}
-    .diet-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-    .diet-col h4{font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;display:flex;align-items:center;gap:6px}
-    .diet-col.favor h4{color:var(--green-mid)}.diet-col.avoid h4{color:var(--red-warn)}
-    .diet-tags{display:flex;flex-wrap:wrap;gap:6px}
-    .diet-tag{padding:4px 10px;border-radius:100px;font-size:12px;font-weight:500}
-    .diet-tag.good{background:var(--green-light);color:var(--green-deep)}.diet-tag.bad{background:var(--red-soft);color:var(--red-warn)}
-    .diet-note{grid-column:1/-1;padding:10px 14px;background:var(--amber-soft);border-radius:var(--r-sm);font-size:13px;color:var(--terra);line-height:1.5;border-left:3px solid var(--amber)}
-    .ls-list{list-style:none;display:flex;flex-direction:column;gap:6px}
-    .ls-list li{display:flex;align-items:flex-start;gap:8px;font-size:14px;color:var(--text-mid);padding:6px 0}
-    .ls-list li::before{content:'▸';color:var(--green-soft);font-weight:700;flex-shrink:0}
-    .yoga-grid{display:flex;flex-wrap:wrap;gap:8px}
-    .yoga-tag{padding:8px 16px;background:linear-gradient(135deg,#F0F7E8,#E8F0DE);border:1px solid rgba(74,124,40,.15);border-radius:var(--r-sm);font-size:13px;color:var(--green-deep);font-weight:500}
-    .prog-box{padding:16px 20px;background:linear-gradient(135deg,var(--green-light),#F0F7E8);border-radius:var(--r-md);font-size:14px;color:var(--text-mid);line-height:1.6}
-    .warn-list{display:flex;flex-direction:column;gap:8px}
-    .warn-item{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--red-soft);border-radius:var(--r-sm);font-size:13px;color:var(--red-warn);font-weight:500}
-    .warn-icon{width:20px;height:20px;background:var(--red-warn);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
-    .raw-text{font-size:14px;line-height:1.7;color:var(--text-mid)}
-    .disclaimer{margin-top:20px;padding:16px 20px;background:var(--bg-warm);border-radius:var(--r-md);font-size:13px;color:var(--text-light);text-align:center;line-height:1.5;border:1px solid var(--border)}
-    .fade-in{animation:fadeUp .5s ease both}
-    @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
-    @media(max-width:640px){.two-col,.diet-grid,.remedy-fields{grid-template-columns:1fr}.header h1{font-size:32px}.disease-header h2{font-size:24px}.search-bar{flex-direction:column}.app{padding:16px 12px 40px}}
-  </style>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<div class="app">
-  <header class="header">
+
+<div class="app-container">
+
+  <header class="header fade-in">
     <div class="header-badge">🌿 WHO ITA Standards · SNOMED CT Mapped</div>
     <h1>Ayur<span>Assist</span></h1>
-    <p class="header-sub">AI-Powered Ayurveda Clinical Decision Support</p>
-    <div class="header-div"></div>
+    <p class="header-sub">Ayurveda–SNOMED Clinical Decision Support</p>
+    <div class="header-divider"></div>
   </header>
-  <section class="search-section">
+
+  <section class="search-section fade-in">
     <p class="search-label">Describe your symptoms</p>
     <p class="search-hint">Enter symptoms in plain language — our NLP engine will identify medical entities</p>
-    <div class="examples" id="examples">
-      <button class="example-btn" data-value="cough">cough</button>
-      <button class="example-btn" data-value="headache">headache</button>
-      <button class="example-btn" data-value="stomach pain">stomach pain</button>
-      <button class="example-btn" data-value="fever">fever</button>
-      <button class="example-btn" data-value="loss of appetite">loss of appetite</button>
-      <button class="example-btn" data-value="joint pain">joint pain</button>
-      <button class="example-btn" data-value="skin rash">skin rash</button>
+    
+    <div class="examples" id="examples" style="margin-bottom: 15px; display: flex; gap: 8px; flex-wrap: wrap;">
+        <button class="example-btn" data-value="difficulty breathing and wheezing">asthma</button>
+        <button class="example-btn" data-value="severe headache and sensitivity to light">migraine</button>
+        <button class="example-btn" data-value="joint pain and stiffness">arthritis</button>
     </div>
+
     <div class="search-bar">
-      <input class="search-input" id="symptomInput" type="text" placeholder="e.g., I have severe cough with phlegm" autocomplete="off">
+      <input class="search-input" id="symptomInput" type="text" placeholder="e.g., headache, stomach pain, cough with fever...">
       <button class="search-btn" id="analyzeBtn" disabled>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg> Analyze
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        Analyze
       </button>
     </div>
     <div class="search-footer">
-      <span class="tech-pill">🧠 scispacy en_core_sci_lg</span>
+      <span class="tech-pill">🧠 Bio_ClinicalBERT NER</span>
       <span class="tech-pill">🤖 AyurParam LLM</span>
-      <span class="tech-pill">📋 226 WHO ITA Conditions</span>
+      <span class="tech-pill">📋 226 ITA Conditions</span>
     </div>
+
+    <div id="loading" class="hidden" style="margin-top:20px; text-align:center; color: var(--text-mid);">
+        <p>🔄 AI is analyzing your symptoms... This may take 30–90s</p>
+    </div>
+    
+    <div id="error" class="hidden" style="margin-top:20px; padding:15px; background:var(--red-soft); color:var(--red-warn); border-radius:8px;"></div>
   </section>
-  <div id="loading" class="loading hidden"><p>🔄 AI is analyzing your symptoms... This may take 30–90s</p></div>
-  <div id="error" class="error-alert hidden"></div>
-  <div id="nerStrip" class="ner-strip hidden"><span class="ner-strip-label">Detected Entities</span></div>
-  <div id="matchBanner" class="match-banner hidden">
-    <div class="match-banner-left"><div class="match-icon">✓</div><div class="match-text"><h3>Ayurvedic Match Found</h3><p id="matchDetails"></p></div></div>
+
+  <div id="nerStrip" class="ner-strip hidden fade-in">
+    <span class="ner-strip-label">Detected Entities</span>
+    </div>
+
+  <div id="matchBanner" class="match-banner hidden fade-in">
+    <div class="match-banner-left">
+      <div class="match-icon">✓</div>
+      <div class="match-text">
+        <h3>Ayurvedic Match Found</h3>
+        <p id="matchDetails">Detected: ...</p>
+      </div>
+    </div>
     <div class="match-percent" id="matchPercent">100%</div>
   </div>
-  <div id="diseaseHeader" class="disease-header hidden">
+
+  <div id="diseaseHeader" class="disease-header hidden fade-in">
     <span class="ita-code" id="itaCode">ITA</span>
-    <h2 id="diseaseName"></h2>
-    <p class="sanskrit" id="sanskritName"></p>
-    <div class="dosha-line" id="doshaLine"></div>
-    <div class="snomed-row" id="snomedRow"><span>SNOMED CT:</span><span class="snomed-code" id="snomedCode"></span><span id="snomedName"></span></div>
+    <h2 id="diseaseName">Condition Name</h2>
+    <p class="sanskrit" id="sanskritName">Sanskrit Name</p>
+    <div class="dosha-line" id="doshaLine">
+      </div>
+    <div class="snomed-row" id="snomedRow">
+      <span>SNOMED CT:</span>
+      <span class="snomed-code" id="snomedCode"></span>
+      <span id="snomedName"></span>
+    </div>
   </div>
-  <div id="results" class="hidden"></div>
-  <div id="disclaimerFooter" class="disclaimer hidden">
+
+  <div id="results" class="hidden">
+    </div>
+
+  <div id="disclaimerFooter" class="disclaimer-bar hidden fade-in">
     ⚕️ This information is for <strong>educational purposes only</strong>. Always consult a qualified Ayurvedic practitioner before starting any treatment.
-    <br><span style="font-size:11px;margin-top:4px;display:inline-block">AyurAssist v2.0 · NLP + LLM · WHO ITA · SNOMED CT</span>
+    <br><span style="font-size:11px;margin-top:4px;display:inline-block;">AyurAssist v2.0 · NLP + LLM Powered Clinical Decision Support · WHO ITA · SNOMED CT</span>
   </div>
+
 </div>
 
-<script>
-/*  ═══════════════════════════════════════════════════════════════
-    AyurAssist Frontend v3.0 — Handles continuous-paragraph LLM
-    ═══════════════════════════════════════════════════════════════ */
-
-const API='https://aravindkv28--ayurparam-service-fastapi-app.modal.run';
-const $=id=>document.getElementById(id);
-const input=$('symptomInput'),btn=$('analyzeBtn'),loadEl=$('loading'),errEl=$('error');
-const nerStrip=$('nerStrip'),matchBanner=$('matchBanner'),diseaseHeader=$('diseaseHeader');
-const resultsEl=$('results'),disclaimer=$('disclaimerFooter');
-const SVG='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>';
-
-fetch(API+'/warmup').catch(()=>{});
-input.addEventListener('input',()=>{btn.disabled=!input.value.trim()});
-input.addEventListener('keypress',e=>{if(e.key==='Enter'&&!btn.disabled){e.preventDefault();doAnalyze()}});
-btn.addEventListener('click',doAnalyze);
-$('examples').addEventListener('click',e=>{if(e.target.classList.contains('example-btn')){input.value=e.target.dataset.value||'';btn.disabled=false;input.focus()}});
-
-/* ══════════════════════════════════════════
-   CORE PARSING UTILITIES
-   ══════════════════════════════════════════ */
-
-function esc(s){if(s==null)return'';const d=document.createElement('div');d.textContent=String(s);return d.innerHTML}
-
-/** Is this text essentially "not provided" / empty / garbage? */
-function empty(t){
-  if(!t||typeof t!=='string')return true;
-  const s=t.trim().toLowerCase();
-  if(s.length<5)return true;
-  return /not provided|not available|not mentioned|no information|not given|not specified|not found|no data|none available|cannot be determined/i.test(s);
-}
-
-/** Strip markdown bold/italic markers and clean */
-function stripMd(s){
-  return s.replace(/\*\*/g,'').replace(/\*/g,'').trim();
-}
-
-/** Escape + render basic markdown */
-function fmt(text){
-  if(!text)return'';
-  return esc(text)
-    .replace(/\*\*([^*]+?)\*\*/g,'<strong>$1</strong>')
-    .replace(/\*([^*]+?)\*/g,'<em>$1</em>');
-}
-
-/**
- * CRITICAL: Split continuous LLM paragraph by inline "N." or "N)" numbering.
- *
- * Input:  "...supervision. 2. **Kāsa Kantaka Rasa**: Contains... 3. **Chyavana..."
- *    or:  "...vamana karma. 2) Pathya - foods to eat... 3) Vihara..."
- *
- * Returns: ["first section text", "second section text", ...]
- * Index 0 = text before first explicit number (the implicit "1" section)
- */
-function splitNumbered(text){
-  if(!text)return[];
-
-  // Try "N." pattern (1. 2. 3.) — but NOT decimals like "125.5"
-  // Match: period/space + digit + "." + space (or start of string + digit + ".")
-  let parts = text.split(/(?:^|\.\s+)(\d+)\.\s+(?=\*|[A-Z])/);
-
-  // If that didn't produce good splits, try "N)" pattern
-  if(parts.length<3){
-    parts = text.split(/(?:^|\.\s*|\s+)(\d+)\)\s*/);
-  }
-
-  // If still no splits, try newline-based
-  if(parts.length<3){
-    parts = text.split(/\n\s*\n|\n(?=\d+[\.\)]\s)/);
-    return parts.map(p=>p.trim()).filter(p=>p.length>5);
-  }
-
-  // Reassemble: parts[0]=before, parts[1]=num, parts[2]=text, parts[3]=num, parts[4]=text...
-  const sections=[];
-  if(parts[0]&&parts[0].trim().length>5) sections.push(parts[0].trim());
-  for(let i=1;i<parts.length;i+=2){
-    const content=parts[i+1];
-    if(content&&content.trim().length>3) sections.push(content.trim());
-  }
-  return sections;
-}
-
-/**
- * Parse formulation/remedy entries from continuous text.
- * Handles: "**Name**: description. Dose: 125mg. Reference: *Text*."
- * all in one paragraph separated by numbering.
- *
- * Returns: [{name, desc, dose, reference, contains}, ...]
- */
-function parseFormulations(rawText){
-  if(!rawText||empty(rawText))return[];
-
-  const sections=splitNumbered(rawText);
-  if(sections.length===0){
-    // Single item? Try the whole text as one entry
-    sections.push(rawText);
-  }
-
-  const results=[];
-  for(const sec of sections){
-    if(empty(sec))continue;
-
-    const entry={name:'',desc:'',dose:'',reference:'',contains:'',form:''};
-
-    // Extract name from **Name**: or **Name** pattern
-    const boldM=sec.match(/\*\*([^*]+?)\*\*\s*[:\-–]?\s*/);
-    if(boldM){
-      entry.name=boldM[1].trim();
-      // Everything after the name pattern is description
-      entry.desc=sec.substring(sec.indexOf(boldM[0])+boldM[0].length).trim();
-    }else{
-      // No bold — first sentence fragment might be the name/title
-      const colonM=sec.match(/^([^.]{5,60})[:\-–]\s*(.*)/s);
-      if(colonM){
-        entry.name=stripMd(colonM[1]);
-        entry.desc=colonM[2].trim();
-      }else{
-        entry.desc=sec;
-      }
-    }
-
-    // Extract structured fields from description
-    const doseM=entry.desc.match(/(?:Dos(?:e|age))\s*[:\-–]\s*([^.]+)/i);
-    if(doseM)entry.dose=stripMd(doseM[1].trim());
-    // Fallback: "125–250 mg dose with honey" or "administered in 10 ml"
-    if(!entry.dose){
-      const doseM2=entry.desc.match(/(\d+[-–]\d+\s*(?:mg|g|ml)[^.]*)/i)||entry.desc.match(/(?:administered\s+in\s+)(\d+[^.]{0,40})/i);
-      if(doseM2)entry.dose=stripMd(doseM2[1].trim());
-    }
-
-    const refM=entry.desc.match(/Reference\s*[:\-–]\s*\*?([^.*\n]+)\*?/i);
-    if(refM)entry.reference=stripMd(refM[1].trim());
-
-    const contM=entry.desc.match(/Contains?\s+([^.]+)/i);
-    if(contM)entry.contains=stripMd(contM[1].trim());
-
-    const formM=entry.desc.match(/Form\s*[:\-–]\s*([^.]+)/i);
-    if(formM)entry.form=stripMd(formM[1].trim());
-
-    // Clean description: remove the extracted parts for cleaner display
-    let cleanDesc=entry.desc;
-    if(entry.dose){
-      cleanDesc=cleanDesc.replace(/(?:Dos(?:e|age))\s*[:\-–]\s*[^.]+\.?\s*/i,'');
-    }
-    if(entry.reference){
-      cleanDesc=cleanDesc.replace(/Reference\s*[:\-–]\s*\*?[^.*\n]+\*?\.?\s*/i,'');
-    }
-    // Remove trailing incomplete sentences
-    cleanDesc=cleanDesc.replace(/\.\s+[A-Z][^.]{0,30}$/,'.');
-    entry.cleanDesc=stripMd(cleanDesc.trim());
-
-    if(entry.name||entry.cleanDesc.length>10)results.push(entry);
-  }
-  return results;
-}
-
-/**
- * Parse single-drug remedies from continuous text.
- * Similar to formulations but looks for: name, Sanskrit, part used, preparation, dosage
- */
-function parseRemedies(rawText){
-  if(!rawText||empty(rawText))return[];
-
-  const sections=splitNumbered(rawText);
-  if(sections.length===0)sections.push(rawText);
-
-  const results=[];
-  for(const sec of sections){
-    if(empty(sec))continue;
-
-    const entry={name:'',sanskrit:'',part:'',preparation:'',dosage:'',duration:'',actions:'',desc:''};
-
-    // Name from **bold**
-    const boldM=sec.match(/\*\*([^*]+?)\*\*\s*[:\-–]?\s*/);
-    if(boldM){
-      entry.name=boldM[1].trim();
-      entry.desc=sec.substring(sec.indexOf(boldM[0])+boldM[0].length).trim();
-    }else{
-      // Try "Name (English):" or just first meaningful chunk
-      const colonM=sec.match(/^([^.]{3,50})[:\-–]\s*(.*)/s);
-      if(colonM){entry.name=stripMd(colonM[1]);entry.desc=colonM[2].trim()}
-      else entry.desc=sec;
-    }
-
-    // Extract key-value pairs from description
-    const kvm=[
-      [/Sanskrit\s*(?:name)?\s*[:\-–]\s*([^.,]+)/i, 'sanskrit'],
-      [/Part\s*(?:used)?\s*[:\-–]\s*([^.,]+)/i, 'part'],
-      [/Preparation\s*[:\-–]\s*([^.]+)/i, 'preparation'],
-      [/Dos(?:e|age)\s*[:\-–]\s*([^.]+)/i, 'dosage'],
-      [/Duration\s*[:\-–]\s*([^.]+)/i, 'duration'],
-      [/Action[s]?\s*[:\-–]\s*([^.]+)/i, 'actions'],
-    ];
-    for(const[rx,key]of kvm){
-      const m=entry.desc.match(rx);
-      if(m)entry[key]=stripMd(m[1].trim());
-    }
-
-    // If name has "(English)" pattern, extract
-    const paren=entry.name.match(/^(.+?)\s*\(([^)]+)\)\s*$/);
-    if(paren){
-      entry.name=paren[1].trim()+' ('+paren[2].trim()+')';
-    }
-
-    if(entry.name||entry.desc.length>10)results.push(entry);
-  }
-  return results;
-}
-
-/**
- * Split Q4 (panchakarma+diet+lifestyle+yoga) into labeled sections.
- * LLM format: "Recommended panchakarma is vamana. 2) Pathya - ... 3) Vihara - ... 4) Yoga ..."
- *
- * Returns: {panchakarma, pathya, apathya, vihara, yoga}
- */
-function parseQ4(text){
-  if(!text)return{};
-  const result={};
-  const sections=splitNumbered(text);
-
-  if(sections.length===0)return{raw:text};
-
-  // Map each section to a category by keyword detection
-  for(let i=0;i<sections.length;i++){
-    const s=sections[i];
-    const low=s.toLowerCase();
-
-    if(low.match(/panchakarma|shodhana|purif|vamana|virechana|basti|nasya/)){
-      result.panchakarma=(result.panchakarma||'')+' '+s;
-    }else if(low.match(/pathya|diet|food|eat|avoid|apathya/)){
-      // Try to split into pathya vs apathya
-      const avoidIdx=s.search(/(?:apathya|avoid|foods?\s+to\s+avoid)/i);
-      if(avoidIdx>20){
-        result.pathya=(result.pathya||'')+' '+s.substring(0,avoidIdx);
-        result.apathya=(result.apathya||'')+' '+s.substring(avoidIdx);
-      }else if(low.includes('avoid')||low.includes('apathya')){
-        result.apathya=(result.apathya||'')+' '+s;
-      }else{
-        result.pathya=(result.pathya||'')+' '+s;
-      }
-    }else if(low.match(/vih[aā]ra|lifestyle/)){
-      result.vihara=(result.vihara||'')+' '+s;
-    }else if(low.match(/yoga|pr[aā]n[aā]y[aā]ma|asana|breathing/)){
-      result.yoga=(result.yoga||'')+' '+s;
-    }else if(i===0){
-      // First section without clear keyword — likely panchakarma (Q4 starts with it)
-      result.panchakarma=(result.panchakarma||'')+' '+s;
-    }else{
-      result['other_'+i]=s;
-    }
-  }
-
-  // Trim all
-  for(const k of Object.keys(result))result[k]=result[k].trim();
-  return result;
-}
-
-/**
- * Split Q5 (prognosis+modern+warnings) into labeled sections.
- * LLM format: "is: 1) Sadhya... 2) Modern correlation... 3) Danger signs..."
- */
-function parseQ5(text){
-  if(!text)return{};
-  const result={};
-  const sections=splitNumbered(text);
-
-  if(sections.length===0)return{raw:text};
-
-  for(let i=0;i<sections.length;i++){
-    const s=sections[i];
-    const low=s.toLowerCase();
-
-    // Strip leading "is:" or "The prognosis is:" fragments
-    let clean=s.replace(/^(?:the\s+)?(?:prognosis\s+)?is\s*[:\-–]\s*/i,'').trim();
-
-    if(low.match(/prognosis|s[aā]dhya|y[aā]pya|as[aā]dhya|curable|incurable|pallia/)){
-      result.prognosis=(result.prognosis||'')+' '+clean;
-    }else if(low.match(/modern|correlation|biomedic|allopath|western|icd|conventional/)){
-      result.modern=(result.modern||'')+' '+clean;
-    }else if(low.match(/danger|warning|immediate|referr|red.?flag|emergency|urgent/)){
-      result.warnings=(result.warnings||'')+' '+clean;
-    }else if(i===0){
-      result.prognosis=(result.prognosis||'')+' '+clean;
-    }else{
-      result['other_'+i]=clean;
-    }
-  }
-
-  for(const k of Object.keys(result))result[k]=result[k].trim();
-  return result;
-}
-
-/**
- * Extract comma/newline-separated items from text for tag display.
- * Splits on commas, newlines, and semicolons. Filters short/garbage items.
- */
-function extractItems(text, minLen){
-  if(!text||empty(text))return[];
-  minLen=minLen||4;
-  return text
-    .split(/[,;\n]/)
-    .map(s=>s.replace(/^[\s\-•*▸\d.\)]+/,'').replace(/\*\*/g,'').trim())
-    .filter(s=>s.length>=minLen&&s.length<100&&!empty(s));
-}
-
-/* ══════════════════════════════════════════
-   ANALYZE
-   ══════════════════════════════════════════ */
-
-async function doAnalyze(){
-  const text=input.value.trim();if(!text)return;
-  btn.disabled=true;btn.innerHTML=SVG+' Analyzing...';
-  loadEl.classList.remove('hidden');errEl.classList.add('hidden');
-  [nerStrip,matchBanner,diseaseHeader,resultsEl,disclaimer].forEach(e=>e.classList.add('hidden'));
-  resultsEl.innerHTML='';
-  const ctrl=new AbortController(),tout=setTimeout(()=>ctrl.abort(),120000);
-  try{
-    const res=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text}),signal:ctrl.signal});
-    clearTimeout(tout);
-    if(!res.ok)throw new Error('HTTP '+res.status);
-    const data=await res.json();
-    console.log('📥 Full API response:',JSON.stringify(data,null,2));
-    render(data,text);
-  }catch(err){
-    console.error(err);
-    errEl.textContent='⚠️ '+(err.name==='AbortError'?'Timeout — try again.':err.message.includes('fetch')?'Network error — cannot reach API.':err.message);
-    errEl.classList.remove('hidden');
-  }finally{btn.disabled=false;btn.innerHTML=SVG+' Analyze';loadEl.classList.add('hidden');btn.disabled=!input.value.trim()}
-}
-
-/* ══════════════════════════════════════════
-   RENDER — Master function
-   ══════════════════════════════════════════ */
-
-function render(data,origSym){
-  // ── Extract treatment_info ──
-  let tx=null;
-  if(data.results&&data.results.length)tx=data.results[0].treatment_info;
-  else if(data.treatment_info)tx=data.treatment_info;
-  if(!tx){errEl.textContent='⚠️ No treatment info returned.';errEl.classList.remove('hidden');return}
-
-  const R=tx.ayurparam_responses||{};
-  const csv=data.csv_match||null;
-
-  // Debug: log each response
-  console.log('🔍 ayurparam_responses keys:',Object.keys(R));
-  for(const[k,v]of Object.entries(R)){
-    console.log(`  ${k}: ${(v||'').length} chars`);
-    console.log(`    "${(v||'').substring(0,120)}..."`);
-  }
-
-  [nerStrip,matchBanner,diseaseHeader,resultsEl,disclaimer].forEach(e=>e.classList.remove('hidden'));
-
-  /* ── NER Strip ── */
-  nerStrip.innerHTML='<span class="ner-strip-label">Detected Entities</span>';
-  const ents=data.clinical_entities;
-  if(ents&&ents.length){
-    ents.forEach(e=>{
-      const t=document.createElement('span');t.className='ner-tag';
-      t.innerHTML=esc(e.word)+' <span class="score">'+esc(e.entity_group||'ENTITY')+' · '+Math.round((e.score||.9)*100)+'%</span>';
-      nerStrip.appendChild(t);
-    });
-  }else{
-    const t=document.createElement('span');t.className='ner-tag';
-    t.innerHTML=esc(origSym)+' <span class="score">ENTITY · 98%</span>';
-    nerStrip.appendChild(t);
-  }
-
-  /* ── Match Banner ── */
-  const cond=tx.condition_name||(csv&&csv.ayurveda_term)||origSym;
-  $('matchDetails').textContent='Detected: '+origSym+' → '+cond;
-  $('matchPercent').textContent='100%';
-
-  /* ── Disease Header ── */
-  $('itaCode').textContent=(csv&&csv.ita_id)||'ITA';
-  $('diseaseName').textContent=cond;
-  $('sanskritName').textContent=tx.sanskrit_name||(csv&&csv.sanskrit_iast)||(csv&&csv.sanskrit)||'';
-
-  // Dosha dots
-  const oLow=((R.overview_dosha_causes||'')+' '+cond).toLowerCase();
-  let dh='';
-  if(/v[aā]t/i.test(oLow))dh+='<span class="dosha-dot vata"></span>';
-  if(/pitt/i.test(oLow))dh+='<span class="dosha-dot pitta"></span>';
-  if(/kaph/i.test(oLow))dh+='<span class="dosha-dot kapha"></span>';
-  if(!dh)dh='<span class="dosha-dot vata"></span><span class="dosha-dot pitta"></span><span class="dosha-dot kapha"></span>';
-  dh+='<span class="dosha-text">Dosha imbalance — requires assessment</span>';
-  $('doshaLine').innerHTML=dh;
-
-  // SNOMED
-  const snomed=data.snomed_code||(data.results&&data.results[0]&&data.results[0].snomed_code)||'';
-  const hasSNOMED=snomed&&snomed!=='N/A'&&snomed!=='00000000'&&snomed!=='';
-  if(hasSNOMED){
-    $('snomedCode').textContent=snomed;
-    $('snomedName').textContent=cond;
-    $('snomedRow').style.display='flex';
-  }else{
-    $('snomedRow').style.display='none';
-  }
-
-  /* ══════════════════════════════════════════
-     BUILD ALL SECTION CARDS
-     ══════════════════════════════════════════ */
-  let H='';
-
-  // ═══ 1. DISEASE DESCRIPTION (Q0) ═══
-  if(!empty(R.overview_dosha_causes)){
-    H+=`<div class="sc fade-in">
-      <div class="sc-head"><div class="sc-icon green">📋</div><span class="sc-title">Disease Description</span></div>
-      <p class="desc-text">${fmt(R.overview_dosha_causes)}</p>
-    </div>`;
-  }
-
-  // ═══ 2. NIDĀNA + RŪPA two-col (from Q0 + Q1) ═══
-  let nidItems=[];
-  if(!empty(R.overview_dosha_causes)){
-    // Extract causes: look for text after "nidana", "causes", etc.
-    const causeM=R.overview_dosha_causes.match(/(?:nid[aā]na|causes?|etiolog\w*)\s*(?:include|are|:)?\s*([^.]*(?:\.[^.]*){0,3})/i);
-    if(causeM){
-      nidItems=extractItems(causeM[1],4).slice(0,10);
-    }
-  }
-
-  let sympItems=[];
-  if(!empty(R.symptoms)){
-    // Symptoms text — split into individual items
-    const sText=R.symptoms;
-    // Try to find items after "rupa" or "symptoms" keyword
-    sympItems=extractItems(sText,4);
-    // If extractItems got nothing useful, try line-by-line
-    if(sympItems.length<2){
-      sympItems=sText.split(/\n/).map(l=>l.replace(/^[\s\-•*▸\d.\)]+/,'').replace(/\*\*/g,'').trim()).filter(l=>l.length>4&&l.length<100&&!empty(l));
-    }
-    sympItems=sympItems.slice(0,12);
-  }
-
-  if(nidItems.length>0||sympItems.length>0){
-    H+='<div class="two-col fade-in">';
-    if(nidItems.length>0){
-      H+=`<div class="sc" style="margin-bottom:0">
-        <div class="sc-head"><div class="sc-icon amber">🔍</div><span class="sc-title">Root Causes (Nidāna)</span></div>
-        <div class="tag-list">${nidItems.map(n=>'<span class="tag-nidana">'+esc(n)+'</span>').join('')}</div>
-      </div>`;
-    }else H+='<div></div>';
-    if(sympItems.length>0){
-      H+=`<div class="sc" style="margin-bottom:0">
-        <div class="sc-head"><div class="sc-icon terra">🩺</div><span class="sc-title">Symptoms (Rūpa)</span></div>
-        <div class="tag-list">${sympItems.map(s=>'<span class="tag-symptom">'+esc(s)+'</span>').join('')}</div>
-      </div>`;
-    }else H+='<div></div>';
-    H+='</div>';
-  }else if(!empty(R.symptoms)){
-    H+=`<div class="sc fade-in">
-      <div class="sc-head"><div class="sc-icon terra">🩺</div><span class="sc-title">Symptoms</span></div>
-      <p class="desc-text">${fmt(R.symptoms)}</p>
-    </div>`;
-  }
-
-  // ═══ 3. OTTAMOOLI (Q2) ═══
-  if(!empty(R.single_drug_remedies)){
-    const remedies=parseRemedies(R.single_drug_remedies);
-    H+=`<div class="sc fade-in">
-      <div class="sc-head"><div class="sc-icon green">🌿</div><span class="sc-title">Ottamooli — Single Medicine Remedies</span></div>
-      <div class="remedy-grid">`;
-
-    if(remedies.length>0){
-      for(const r of remedies){
-        H+=`<div class="remedy-card">
-          <div class="remedy-name">${esc(r.name||'Herbal Remedy')}</div>
-          ${r.sanskrit?'<div class="remedy-sanskrit">'+esc(r.sanskrit)+'</div>':''}
-          <div class="remedy-fields">
-            ${r.part?'<div class="rf"><span class="rf-label">Part Used</span>'+esc(r.part)+'</div>':''}
-            ${r.preparation?'<div class="rf"><span class="rf-label">Preparation</span>'+esc(r.preparation)+'</div>':''}
-            ${r.dosage?'<div class="rf"><span class="rf-label">Dosage</span>'+esc(r.dosage)+'</div>':''}
-            ${r.duration?'<div class="rf"><span class="rf-label">Duration</span>'+esc(r.duration)+'</div>':''}
-            ${r.actions?'<div class="rf" style="grid-column:1/-1"><span class="rf-label">Actions</span>'+esc(r.actions)+'</div>':''}
-          </div>
-        </div>`;
-      }
-    }else{
-      H+=`<div class="raw-text" style="padding:12px">${fmt(R.single_drug_remedies)}</div>`;
-    }
-    H+='</div></div>';
-  }
-
-  // ═══ 4. CLASSICAL FORMULATIONS (Q3) ═══
-  if(!empty(R.classical_formulations)){
-    const formulations=parseFormulations(R.classical_formulations);
-    H+=`<div class="sc fade-in">
-      <div class="sc-head"><div class="sc-icon amber">💊</div><span class="sc-title">Classical Formulations (Yogas)</span></div>
-      <div class="remedy-grid">`;
-
-    if(formulations.length>0){
-      for(const f of formulations){
-        H+=`<div class="form-card">
-          <h4>${esc(f.name||'Classical Formulation')}</h4>
-          ${f.cleanDesc?'<div class="form-desc">'+fmt(f.cleanDesc)+'</div>':''}
-          <div class="form-meta">
-            ${f.dose?'<span>💊 <strong>Dose:</strong> '+esc(f.dose)+'</span>':''}
-            ${f.form?'<span>📦 <strong>Form:</strong> '+esc(f.form)+'</span>':''}
-            ${f.contains?'<span>🧪 <strong>Contains:</strong> '+esc(f.contains)+'</span>':''}
-          </div>
-          ${f.reference?'<div class="ref-badge">📖 '+esc(f.reference)+'</div>':''}
-        </div>`;
-      }
-    }else{
-      H+=`<div class="raw-text" style="padding:12px">${fmt(R.classical_formulations)}</div>`;
-    }
-    H+='</div></div>';
-  }
-
-  // ═══ 5. PANCHAKARMA + DIET + LIFESTYLE + YOGA (Q4) ═══
-  if(!empty(R.panchakarma_diet_lifestyle_yoga)){
-    const q4=parseQ4(R.panchakarma_diet_lifestyle_yoga);
-    console.log('🔍 Q4 parsed:',q4);
-    let any5=false;
-
-    // 5a: Panchakarma
-    if(q4.panchakarma&&!empty(q4.panchakarma)){
-      any5=true;
-      // Clean: remove "Recommended panchakarma treatment for X is" prefix
-      let pkText=q4.panchakarma.replace(/^Recommended\s+panchakarma\s+(?:treatment\s+)?(?:for\s+\w+\s*(?:\([^)]*\))?\s*)?(?:is\s+)?/i,'').trim();
-      const pkItems=extractItems(pkText,4);
-      H+=`<div class="sc fade-in">
-        <div class="sc-head"><div class="sc-icon amber">🛁</div><span class="sc-title">Panchakarma Therapies</span></div>`;
-      if(pkItems.length>1){
-        H+='<div class="remedy-grid">'+pkItems.map(p=>'<div class="pk-card"><p>'+esc(p)+'</p></div>').join('')+'</div>';
-      }else{
-        H+=`<div class="pk-card"><p>${fmt(pkText)}</p></div>`;
-      }
-      H+='</div>';
-    }
-
-    // 5b: Diet
-    const hasP=q4.pathya&&!empty(q4.pathya);
-    const hasA=q4.apathya&&!empty(q4.apathya);
-    if(hasP||hasA){
-      any5=true;
-      const pClean=hasP?q4.pathya.replace(/^Pathya\s*[-–:]\s*(?:foods?\s+to\s+eat\s*[-–:]?\s*)?/i,'').trim():'';
-      const aClean=hasA?q4.apathya.replace(/^Apathya\s*[-–:]\s*(?:foods?\s+to\s+avoid\s*[-–:]?\s*)?/i,'').trim():'';
-      const pItems=extractItems(pClean,3).slice(0,10);
-      const aItems=extractItems(aClean,3).slice(0,10);
-
-      if(pItems.length>0||aItems.length>0){
-        H+=`<div class="sc fade-in">
-          <div class="sc-head"><div class="sc-icon green">🥗</div><span class="sc-title">Pathya-Apathya (Diet)</span></div>
-          <div class="diet-grid">`;
-        if(pItems.length)H+='<div class="diet-col favor"><h4>✅ Favorable</h4><div class="diet-tags">'+pItems.map(f=>'<span class="diet-tag good">'+esc(f)+'</span>').join('')+'</div></div>';
-        if(aItems.length)H+='<div class="diet-col avoid"><h4>❌ Avoid</h4><div class="diet-tags">'+aItems.map(f=>'<span class="diet-tag bad">'+esc(f)+'</span>').join('')+'</div></div>';
-        H+=`<div class="diet-note">💡 Follow dietary guidelines suited to your prakṛti. Consult an Ayurvedic practitioner.</div></div></div>`;
-      }
-    }
-
-    // 5c+5d: Lifestyle + Yoga
-    const hasV=q4.vihara&&!empty(q4.vihara);
-    const hasY=q4.yoga&&!empty(q4.yoga);
-    if(hasV||hasY){
-      any5=true;
-      H+='<div class="two-col fade-in">';
-      if(hasV){
-        let vClean=q4.vihara.replace(/^Vih[aā]ra\s*[-–:]\s*(?:lifestyle\s+advice\s*[-–:]?\s*)?/i,'').trim();
-        const vItems=extractItems(vClean,4).slice(0,8);
-        H+=`<div class="sc" style="margin-bottom:0">
-          <div class="sc-head"><div class="sc-icon terra">🏃</div><span class="sc-title">Lifestyle (Vihāra)</span></div>`;
-        H+=vItems.length>0
-          ?'<ul class="ls-list">'+vItems.map(i=>'<li>'+esc(i)+'</li>').join('')+'</ul>'
-          :'<p class="desc-text">'+fmt(vClean)+'</p>';
-        H+='</div>';
-      }else H+='<div></div>';
-      if(hasY){
-        let yClean=q4.yoga.replace(/^Recommended\s+yoga\s+and\s+pranayama\s*(?:for\s+\w+\s*(?:\([^)]*\))?\s*)?(?:are\s*)?[-–:]?\s*/i,'').trim();
-        const yItems=extractItems(yClean,3).slice(0,8);
-        H+=`<div class="sc" style="margin-bottom:0">
-          <div class="sc-head"><div class="sc-icon green">🧘</div><span class="sc-title">Yoga & Prāṇāyāma</span></div>`;
-        H+=yItems.length>0
-          ?'<div class="yoga-grid">'+yItems.map(i=>'<span class="yoga-tag">'+esc(i)+'</span>').join('')+'</div>'
-          :'<p class="desc-text">'+fmt(yClean)+'</p>';
-        H+='</div>';
-      }else H+='<div></div>';
-      H+='</div>';
-    }
-
-    // Fallback
-    if(!any5){
-      H+=`<div class="sc fade-in">
-        <div class="sc-head"><div class="sc-icon amber">🛁</div><span class="sc-title">Treatment Protocols</span></div>
-        <p class="desc-text">${fmt(R.panchakarma_diet_lifestyle_yoga)}</p>
-      </div>`;
-    }
-  }
-
-  // ═══ 6. PROGNOSIS + MODERN + WARNINGS (Q5) ═══
-  if(!empty(R.prognosis_modern_warnings)){
-    const q5=parseQ5(R.prognosis_modern_warnings);
-    console.log('🔍 Q5 parsed:',q5);
-    let any6=false;
-
-    if(q5.prognosis&&!empty(q5.prognosis)){
-      any6=true;
-      H+=`<div class="sc fade-in">
-        <div class="sc-head"><div class="sc-icon green">📈</div><span class="sc-title">Prognosis</span></div>
-        <div class="prog-box">${fmt(q5.prognosis)}</div>
-      </div>`;
-    }
-
-    if(q5.modern&&!empty(q5.modern)){
-      any6=true;
-      H+=`<div class="sc fade-in">
-        <div class="sc-head"><div class="sc-icon blue">🏥</div><span class="sc-title">Modern Medical Correlation</span></div>
-        <p class="desc-text">${fmt(q5.modern)}</p>
-      </div>`;
-    }
-
-    if(q5.warnings&&!empty(q5.warnings)){
-      const wItems=extractItems(q5.warnings,5).slice(0,8);
-      if(wItems.length>0){
-        any6=true;
-        H+=`<div class="sc fade-in">
-          <div class="sc-head"><div class="sc-icon red">⚠️</div><span class="sc-title">Warning Signs</span></div>
-          <div class="warn-list">${wItems.map(w=>'<div class="warn-item"><div class="warn-icon">!</div><span>'+esc(w)+'</span></div>').join('')}</div>
-        </div>`;
-      }else if(!empty(q5.warnings)){
-        any6=true;
-        H+=`<div class="sc fade-in">
-          <div class="sc-head"><div class="sc-icon red">⚠️</div><span class="sc-title">Warning Signs</span></div>
-          <p class="desc-text">${fmt(q5.warnings)}</p>
-        </div>`;
-      }
-    }
-
-    if(!any6){
-      H+=`<div class="sc fade-in">
-        <div class="sc-head"><div class="sc-icon green">📈</div><span class="sc-title">Prognosis & Clinical Notes</span></div>
-        <div class="prog-box">${fmt(R.prognosis_modern_warnings)}</div>
-      </div>`;
-    }
-  }
-
-  // ═══ CATCH-ALL: any unhandled keys ═══
-  const done=new Set(['overview_dosha_causes','symptoms','single_drug_remedies','classical_formulations','panchakarma_diet_lifestyle_yoga','prognosis_modern_warnings']);
-  for(const[k,v]of Object.entries(R)){
-    if(done.has(k)||!v||typeof v!=='string'||empty(v))continue;
-    H+=`<div class="sc fade-in">
-      <div class="sc-head"><div class="sc-icon amber">📄</div><span class="sc-title">${esc(k.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()))}</span></div>
-      <p class="desc-text">${fmt(v)}</p>
-    </div>`;
-  }
-
-  resultsEl.innerHTML=H;
-}
-</script>
+<script src="app.js"></script>
 </body>
 </html>
