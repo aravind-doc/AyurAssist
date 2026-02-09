@@ -969,12 +969,10 @@
     function getDemoDataForSymptom(symptom) {
       const demoData = {
         'headache': {
-          ita_code: 'ITA-SHIRASHOOLA',
-          english_name: 'Shirashoola (Headache)',
+          condition_name: 'Shirashoola (Headache)',
           sanskrit_name: 'शिरशूल',
           dosha_imbalance: 'Vata, Pitta',
           snomed_code: '25064002',
-          snomed_name: 'Headache',
           disease_description: 'Shirashoola refers to pain in head region. Ayurveda classifies headaches based on doshic involvement and location of pain. Vata-type headaches are throbbing, Pitta-type are burning, and Kapha-type are dull and heavy.',
           modern_correlate: 'Migraine, Tension Headache',
           primary_symptoms: ['Throbbing pain', 'Temple pain', 'Nausea', 'Sensitivity to light', 'Neck stiffness', 'Blurred vision', 'Irritability'],
@@ -1035,12 +1033,10 @@
           warning_signs: ['Sudden severe headache', 'Headache with fever', 'Vision changes', 'Weakness on one side']
         },
         'cough': {
-          ita_code: 'ITA-KASA',
-          english_name: 'Kasa (Cough)',
+          condition_name: 'Kasa (Cough)',
           sanskrit_name: 'कास',
           dosha_imbalance: 'Vata, Kapha',
           snomed_code: '49727002',
-          snomed_name: 'Cough',
           disease_description: 'Kasa is characterized by abnormal expulsion of air from lungs with sound. In Ayurveda, it is classified based on dosha involvement - Vataja, Pittaja, Kaphaja, Kshataja, and Kshayaja types.',
           modern_correlate: 'Bronchitis, Upper Respiratory Infection',
           primary_symptoms: ['Dry cough', 'Cough with phlegm', 'Chest pain', 'Hoarseness of voice', 'Difficulty breathing'],
@@ -1065,41 +1061,17 @@
             }
           ]
         },
-        'vomiting': {
-          ita_code: 'ITA-CHARDI',
-          english_name: 'Chardi (Vomiting)',
-          sanskrit_name: 'छर्दि',
-          dosha_imbalance: 'Pitta, Kapha',
-          snomed_code: '422400008',
-          snomed_name: 'Vomiting',
-          disease_description: 'Chardi is expulsion of stomach contents through mouth. It can be caused by vitiation of doshas, improper diet, toxins, or psychological factors. Ayurveda classifies five types based on dosha involvement.',
-          modern_correlate: 'Nausea and Vomiting, Gastritis',
-          primary_symptoms: ['Nausea', 'Retching', 'Abdominal discomfort', 'Loss of appetite', 'Weakness'],
-          ottamooli_remedies: [
-            {
-              english_name: 'Ginger (Zingiber)',
-              sanskrit_name: 'आर्द्रक',
-              part_used: 'Rhizome',
-              dosage: '1-2 grams',
-              preparation: 'Fresh juice with honey',
-              actions: 'Antiemetic, Digestive'
-            }
-          ],
-          formulations: [
-            {
-              sanskrit_name: 'सूतशेखर रस',
-              english_name: 'Sutshekhar Ras',
-              dosage: '125-250mg twice daily',
-              duration: '7-14 days',
-              anupana: 'Honey',
-              reference: 'Rasaratna Samucchaya'
-            }
-          ],
-          pathya_foods: ['Light rice gruel', 'Coconut water', 'Pomegranate juice', 'Cumin water'],
-          apathya_foods: ['Heavy oily foods', 'Spicy food', 'Sour items', 'Alcohol'],
-          dietary_note: 'Take small frequent meals. Avoid drinking water immediately after food.',
-          lifestyle_recommendations: ['Rest', 'Avoid strong odors', 'Stay hydrated', 'Eat slowly'],
-          prognosis: 'Usually resolves within 3-7 days with proper treatment.'
+        'stomach pain': {
+          condition_name: 'Udara Shoola (Abdominal Pain)',
+          sanskrit_name: 'उदर शूल',
+          dosha_imbalance: 'Vata, Pitta',
+          snomed_code: '21522001',
+          disease_description: 'Udara Shoola refers to pain in the abdominal region. It can be caused by various factors including improper diet, stress, and dosha imbalances.',
+          modern_correlate: 'Gastritis, Dyspepsia',
+          primary_symptoms: ['Abdominal cramping', 'Bloating', 'Loss of appetite', 'Nausea'],
+          pathya_foods: ['Light rice gruel', 'Buttermilk', 'Cumin water'],
+          apathya_foods: ['Heavy oily foods', 'Spicy food', 'Raw vegetables'],
+          dietary_note: 'Eat warm, easily digestible foods. Avoid overeating.'
         }
       };
       
@@ -1119,12 +1091,10 @@
       
       // Default
       return {
-        ita_code: 'ITA-DEMO',
-        english_name: symptom.charAt(0).toUpperCase() + symptom.slice(1),
+        condition_name: symptom.charAt(0).toUpperCase() + symptom.slice(1),
         sanskrit_name: 'संस्कृत नाम',
         dosha_imbalance: 'Vata, Pitta, Kapha',
         snomed_code: '00000000',
-        snomed_name: symptom.charAt(0).toUpperCase() + symptom.slice(1),
         disease_description: `This is a demo description for "${symptom}". In a real scenario, the AI would provide specific Ayurvedic diagnosis and treatment recommendations.`,
         modern_correlate: 'Modern medical correlate',
         primary_symptoms: ['Symptom 1', 'Symptom 2', 'Symptom 3']
@@ -1138,60 +1108,46 @@
 
     function displayResultsFromAPI(data, originalSymptoms) {
       console.log('🔍 Processing API data:', data);
-      console.log('🔍 Data type:', typeof data);
-      console.log('🔍 Data keys:', Object.keys(data));
       
-      let resp = {};
-      
-      // Try multiple possible response structures
+      // Extract treatment object
+      let treatment = null;
       if (data.results && Array.isArray(data.results) && data.results.length > 0) {
-        console.log('🔍 Found data.results array');
-        const firstResult = data.results[0];
-        console.log('🔍 First result:', firstResult);
-        
-        if (firstResult.treatment_info) {
-          console.log('🔍 Found treatment_info');
-          const treatment = firstResult.treatment_info;
-          resp = treatment.ayurparam_responses || treatment;
-        } else {
-          resp = firstResult;
-        }
+        treatment = data.results[0].treatment_info;
       } else if (data.treatment_info) {
-        console.log('🔍 Found data.treatment_info');
-        resp = data.treatment_info.ayurparam_responses || data.treatment_info;
-      } else if (data.ayurparam_responses) {
-        console.log('🔍 Found data.ayurparam_responses');
-        resp = data.ayurparam_responses;
-      } else if (data.ita_code) {
-        console.log('🔍 Found data.ita_code at root');
-        resp = data;
-      } else {
-        console.log('🔍 Using data as-is');
-        resp = data;
+        treatment = data.treatment_info;
       }
       
-      console.log('🔍 Extracted response object:', resp);
-      console.log('🔍 Response keys:', Object.keys(resp));
-      console.log('🔍 ITA Code:', resp.ita_code);
-      console.log('🔍 English Name:', resp.english_name);
+      if (!treatment) {
+        console.log('⚠️ No treatment info found, falling back to demo');
+        const demoData = getDemoDataForSymptom(originalSymptoms);
+        displayResults(demoData, originalSymptoms, true);
+        return;
+      }
       
-      // Check if API returned meaningful data
-      const hasRealData = resp && 
-                          resp.ita_code && 
-                          resp.ita_code !== 'ITA-Unknown' && 
-                          resp.ita_code !== 'ITA-DEMO' &&
-                          resp.ita_code !== '';
+      // Get the ayurparam responses (the actual LLM text)
+      const resp = treatment.ayurparam_responses || {};
+      
+      console.log('🔍 Treatment object:', treatment);
+      console.log('🔍 Ayurparam responses:', resp);
+      
+      // Check if we have real data - check the TREATMENT object for condition_name
+      const hasRealData = treatment && 
+                          treatment.condition_name && 
+                          treatment.condition_name !== originalSymptoms &&
+                          Object.keys(resp).length > 0;
       
       console.log('🔍 Has real data:', hasRealData);
       
       if (!hasRealData) {
         console.log('⚠️ API returned placeholder/empty data, showing demo');
-        console.log('⚠️ ITA code was:', resp.ita_code);
+        console.log('⚠️ Condition name was:', treatment.condition_name);
         const demoData = getDemoDataForSymptom(originalSymptoms);
         displayResults(demoData, originalSymptoms, true);
       } else {
         console.log('✅ Displaying real API data');
-        displayResults(resp, originalSymptoms, false);
+        // Pass the combined data with both treatment fields AND ayurparam_responses
+        const combinedData = { ...treatment, ayurparam_responses: resp };
+        displayResults(combinedData, originalSymptoms, false);
       }
     }
 
@@ -1212,12 +1168,13 @@
       `;
       
       // Fill match banner
-      document.getElementById('matchDetails').textContent = `Detected: ${escapeHTML(originalSymptoms)} → ${resp.ita_code || 'ITA-UNKNOWN'}`;
+      const conditionName = resp.condition_name || resp.english_name || 'Unknown';
+      document.getElementById('matchDetails').textContent = `Detected: ${escapeHTML(originalSymptoms)} → ${conditionName}`;
       document.getElementById('matchPercent').textContent = '100%';
       
       // Fill disease header
-      document.getElementById('itaCode').textContent = resp.ita_code || 'ITA-UNKNOWN';
-      document.getElementById('diseaseName').textContent = resp.english_name || 'Unknown Condition';
+      document.getElementById('itaCode').textContent = 'ITA';
+      document.getElementById('diseaseName').textContent = conditionName;
       document.getElementById('sanskritName').textContent = resp.sanskrit_name || 'संस्कृत नाम';
       
       // Fill dosha information
@@ -1232,7 +1189,7 @@
       
       // Fill SNOMED info
       document.getElementById('snomedCode').textContent = resp.snomed_code || '00000000';
-      document.getElementById('snomedName').textContent = resp.snomed_name || resp.english_name || 'Unknown';
+      document.getElementById('snomedName').textContent = conditionName;
       
       // Build results HTML
       let resultsHTML = '';
@@ -1252,14 +1209,15 @@
       }
       
       // 1. Disease Description
-      if (resp.disease_description) {
+      if (resp.disease_description || (resp.ayurparam_responses && resp.ayurparam_responses.overview_dosha_causes)) {
+        const description = resp.disease_description || resp.ayurparam_responses.overview_dosha_causes;
         resultsHTML += `
           <div class="section-card fade-in">
             <div class="section-header">
               <div class="section-icon green">📋</div>
               <span class="section-title">Disease Description</span>
             </div>
-            <p class="desc-text">${escapeHTML(resp.disease_description)}</p>
+            <p class="desc-text">${escapeHTML(description)}</p>
             ${resp.modern_correlate ? `<div class="modern-corr">🏥 Modern correlate: ${escapeHTML(resp.modern_correlate)}</div>` : ''}
           </div>
         `;
