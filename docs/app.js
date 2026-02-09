@@ -85,6 +85,7 @@ async function analyze() {
 
     const data = await response.json();
     console.log('📥 API Response:', data);
+    console.log('📥 Full API Response (stringified):', JSON.stringify(data, null, 2));
     
     renderResults(data, text);
   } catch (err) {
@@ -116,27 +117,20 @@ function esc(str) {
 function renderResults(data, originalSymptom) {
   console.log('🎨 Rendering results:', data);
   
-  // Extract treatment info
+  // Extract treatment info - the API returns: data.results[0].treatment_info
   const treatment = data.results && data.results[0] && data.results[0].treatment_info;
   if (!treatment) {
     showError('⚠️ No treatment information found for this symptom.');
     return;
   }
 
+  // The ayurparam_responses contains the LLM-generated text
   const resp = treatment.ayurparam_responses || {};
   
   console.log('🎨 Treatment object:', treatment);
   console.log('🎨 AyurParam responses:', resp);
-  
-  // Check if this is real data or placeholder
-  const itaCode = treatment.ita_code || '';
-  const isRealData = itaCode && 
-                     itaCode !== 'ITA-DEMO' && 
-                     itaCode !== 'ITA-Unknown' &&
-                     itaCode !== 'ITA-' &&
-                     itaCode.length > 4;
-  
-  console.log('🎨 ITA Code:', itaCode, '| Is Real Data:', isRealData);
+  console.log('🎨 Condition name:', treatment.condition_name);
+  console.log('🎨 Sanskrit name:', treatment.sanskrit_name);
   
   // Show all sections
   nerStrip.classList.remove('hidden');
@@ -151,7 +145,7 @@ function renderResults(data, originalSymptom) {
     data.clinical_entities.forEach((ent) => {
       const tag = document.createElement('span');
       tag.className = 'ner-tag';
-      tag.innerHTML = `${esc(ent.word)} <span class="score">${esc(ent.label || 'Sign_symptom')} · ${Math.round((ent.confidence || 0.9) * 100)}%</span>`;
+      tag.innerHTML = `${esc(ent.word)} <span class="score">${esc(ent.entity_group || 'Sign_symptom')} · ${Math.round((ent.score || 0.9) * 100)}%</span>`;
       nerStrip.appendChild(tag);
     });
   } else {
@@ -163,13 +157,17 @@ function renderResults(data, originalSymptom) {
   }
 
   // 2. Fill match banner
-  document.getElementById('matchDetails').textContent = `Detected: ${esc(originalSymptom)} → ${esc(itaCode)}`;
+  const conditionName = treatment.condition_name || originalSymptom;
+  document.getElementById('matchDetails').textContent = `Detected: ${esc(originalSymptom)} → ${esc(conditionName)}`;
   document.getElementById('matchPercent').textContent = '100%';
 
   // 3. Fill disease header
+  const csvMatch = data.csv_match;
+  const itaCode = csvMatch ? csvMatch.ita_id : 'ITA';
+  
   document.getElementById('itaCode').textContent = esc(itaCode || 'ITA');
-  document.getElementById('diseaseName').textContent = esc(treatment.condition_name || originalSymptom);
-  document.getElementById('sanskritName').textContent = esc(treatment.sanskrit_name || 'संस्कृत नाम');
+  document.getElementById('diseaseName').textContent = esc(conditionName);
+  document.getElementById('sanskritName').textContent = esc(treatment.sanskrit_name || csvMatch?.sanskrit_iast || 'संस्कृत नाम');
   
   // Determine dosha dots based on response
   const doshaLine = document.querySelector('.dosha-line');
@@ -177,16 +175,14 @@ function renderResults(data, originalSymptom) {
   
   // Check for dosha mentions in the text
   const overviewText = (resp.overview_dosha_causes || '').toLowerCase();
-  const doshaInfo = (treatment.dosha_info || '').toLowerCase();
-  const combinedText = overviewText + ' ' + doshaInfo;
   
-  if (combinedText.includes('vata') || combinedText.includes('vāta')) {
+  if (overviewText.includes('vata') || overviewText.includes('vāta')) {
     doshaLine.innerHTML += '<span class="dosha-dot vata"></span>';
   }
-  if (combinedText.includes('pitta') || combinedText.includes('pitta')) {
+  if (overviewText.includes('pitta')) {
     doshaLine.innerHTML += '<span class="dosha-dot pitta"></span>';
   }
-  if (combinedText.includes('kapha') || combinedText.includes('kapha')) {
+  if (overviewText.includes('kapha')) {
     doshaLine.innerHTML += '<span class="dosha-dot kapha"></span>';
   }
   
@@ -198,93 +194,40 @@ function renderResults(data, originalSymptom) {
   // Add dosha text
   const doshaSpan = document.createElement('span');
   doshaSpan.className = 'dosha-text';
-  doshaSpan.textContent = esc(treatment.dosha_info || 'Dosha imbalance — requires assessment');
+  doshaSpan.textContent = 'Dosha imbalance — requires assessment';
   doshaLine.appendChild(doshaSpan);
 
-  document.getElementById('snomedCode').textContent = esc(data.snomed_code || treatment.snomed_code || '00000000');
-  document.getElementById('snomedName').textContent = esc(treatment.condition_name || originalSymptom);
+  // SNOMED code
+  document.getElementById('snomedCode').textContent = esc(data.snomed_code || '00000000');
+  document.getElementById('snomedName').textContent = esc(conditionName);
 
   // 4. Build the section cards
   let html = '';
-  
-  // Show demo notice if not real data
-  if (!isRealData) {
-    html += `
-      <div class="section-card fade-in">
-        <div class="section-header">
-          <div class="section-icon amber">ℹ️</div>
-          <span class="section-title">Demo Mode Active</span>
-        </div>
-        <p class="desc-text">Showing demo Ayurvedic information for "<strong>${esc(originalSymptom)}</strong>". The backend returned ITA code: <code>${esc(itaCode)}</code></p>
-        <div class="modern-corr">🏥 In production, AyurParam LLM should generate complete diagnosis with proper ITA codes</div>
-      </div>`;
-  }
 
-  // Description Card
+  // Description Card - ALWAYS SHOW if we have overview
   if (resp.overview_dosha_causes) {
-    const overviewLines = resp.overview_dosha_causes.split('\n').filter(l => l.trim());
-    const mainDescription = overviewLines[0] || resp.overview_dosha_causes;
-    
     html += `
       <div class="section-card fade-in">
         <div class="section-header">
           <div class="section-icon green">📋</div>
           <span class="section-title">Disease Description</span>
         </div>
-        <p class="desc-text">${formatText(mainDescription)}</p>
-        ${treatment.modern_correlation ? `<div class="modern-corr">🏥 Modern correlate: ${esc(treatment.modern_correlation)}</div>` : ''}
+        <p class="desc-text">${formatText(resp.overview_dosha_causes)}</p>
       </div>`;
   }
 
-  // Extract causes and symptoms from the response
-  const overviewLines = resp.overview_dosha_causes ? resp.overview_dosha_causes.split('\n') : [];
-  const symptomLines = resp.symptoms ? resp.symptoms.split('\n') : [];
-  
-  // Filter out causes (looking for lines that describe causative factors)
-  const causes = overviewLines.filter(line => {
-    const lower = line.toLowerCase().trim();
-    return lower && 
-           !lower.startsWith('overview') && 
-           !lower.startsWith('description') &&
-           (lower.includes('cause') || lower.includes('due to') || lower.includes('factor') ||
-            lower.includes('diet') || lower.includes('lifestyle') || lower.includes('exposure')) &&
-           line.trim().length > 10;
-  }).slice(0, 6);
-  
-  // Filter symptoms
-  const symptoms = symptomLines.filter(line => {
-    const trimmed = line.trim();
-    return trimmed && 
-           !trimmed.toLowerCase().includes('symptoms:') && 
-           !trimmed.toLowerCase().includes('purvarupa') && 
-           !trimmed.toLowerCase().includes('rupa:') &&
-           trimmed.length > 3;
-  }).slice(0, 8);
+  // Extract symptoms from the symptoms response
+  if (resp.symptoms) {
+    const symptomLines = resp.symptoms.split('\n').filter(line => {
+      const trimmed = line.trim();
+      return trimmed && 
+             !trimmed.toLowerCase().startsWith('purvarupa') && 
+             !trimmed.toLowerCase().startsWith('rupa') &&
+             !trimmed.toLowerCase().startsWith('symptoms') &&
+             trimmed.length > 5;
+    }).slice(0, 8);
 
-  // Nidana & Rupa Cards
-  if (causes.length > 0 || symptoms.length > 0) {
-    html += `<div class="two-col">`;
-    
-    // Root Causes Card
-    if (causes.length > 0) {
-      html += `
-        <div class="section-card fade-in">
-          <div class="section-header">
-            <div class="section-icon amber">🔍</div>
-            <span class="section-title">Root Causes (Nidāna)</span>
-          </div>
-          <div class="tag-list">`;
-      causes.forEach(cause => {
-        const cleaned = cause.trim().replace(/^[-•*]\s*/, '').replace(/^\d+\.\s*/, '');
-        if (cleaned) {
-          html += `<span class="tag-item">${esc(cleaned)}</span>`;
-        }
-      });
-      html += `</div></div>`;
-    }
-
-    // Symptoms Card
-    if (symptoms.length > 0) {
+    if (symptomLines.length > 0) {
       html += `
         <div class="section-card fade-in">
           <div class="section-header">
@@ -292,16 +235,16 @@ function renderResults(data, originalSymptom) {
             <span class="section-title">Primary Symptoms (Rūpa)</span>
           </div>
           <div class="tag-list">`;
-      symptoms.forEach(symptom => {
-        const cleaned = symptom.trim().replace(/^[-•*]\s*/, '').replace(/^\d+\.\s*/, '');
+      
+      symptomLines.forEach(symptom => {
+        const cleaned = symptom.trim().replace(/^[-•*\d.)\s]+/, '');
         if (cleaned) {
           html += `<span class="tag-item symptom">${esc(cleaned)}</span>`;
         }
       });
+      
       html += `</div></div>`;
     }
-    
-    html += `</div>`; // end two-col
   }
 
   // Single Drug Remedies (Ottamooli) Card
@@ -314,26 +257,36 @@ function renderResults(data, originalSymptom) {
         </div>
         <div class="remedy-grid">`;
     
-    // Parse remedies
-    const remedyLines = resp.single_drug_remedies.split('\n').filter(line => line.trim());
+    // Parse remedies - split by lines and look for drug names
+    const remedyText = resp.single_drug_remedies;
+    const remedyBlocks = remedyText.split(/\n\n|\d+\.\s+/).filter(b => b.trim());
     
-    remedyLines.slice(0, 4).forEach(line => {
-      if (line.trim() && (line.includes(':') || line.includes('–') || line.includes('-'))) {
-        const parts = line.split(/[:–-]/);
-        const name = parts[0]?.trim() || 'Herb Remedy';
-        const details = parts.slice(1).join(':').trim() || 'As prescribed by practitioner';
+    remedyBlocks.slice(0, 3).forEach(block => {
+      if (block.trim().length > 10) {
+        const lines = block.split('\n').map(l => l.trim()).filter(l => l);
+        const name = lines[0] || 'Herb Remedy';
         
         html += `
           <div class="remedy-card">
             <div class="remedy-name">${esc(name)}</div>
             <div class="remedy-sanskrit">${esc(name)}</div>
-            <div class="remedy-details">
-              <div class="remedy-detail"><span class="remedy-detail-label">Part:</span> Leaves/Root</div>
-              <div class="remedy-detail"><span class="remedy-detail-label">Dosage:</span> Consult practitioner</div>
-              <div class="remedy-detail"><span class="remedy-detail-label">Preparation:</span> ${esc(details.substring(0, 50))}</div>
-              <div class="remedy-detail"><span class="remedy-detail-label">Actions:</span> Therapeutic</div>
-            </div>
-          </div>`;
+            <div class="remedy-details">`;
+        
+        // Extract details from subsequent lines
+        lines.slice(1).forEach(line => {
+          if (line.toLowerCase().includes('part')) {
+            const part = line.split(':')[1]?.trim() || 'As prescribed';
+            html += `<div class="remedy-detail"><span class="remedy-detail-label">Part:</span> ${esc(part)}</div>`;
+          } else if (line.toLowerCase().includes('dosage') || line.toLowerCase().includes('dose')) {
+            const dosage = line.split(':')[1]?.trim() || 'Consult practitioner';
+            html += `<div class="remedy-detail"><span class="remedy-detail-label">Dosage:</span> ${esc(dosage)}</div>`;
+          } else if (line.toLowerCase().includes('preparation')) {
+            const prep = line.split(':')[1]?.trim() || 'Standard';
+            html += `<div class="remedy-detail"><span class="remedy-detail-label">Preparation:</span> ${esc(prep)}</div>`;
+          }
+        });
+        
+        html += `</div></div>`;
       }
     });
     
@@ -350,28 +303,38 @@ function renderResults(data, originalSymptom) {
         </div>
         <div class="remedy-grid">`;
     
-    const formulationLines = resp.classical_formulations.split('\n').filter(line => line.trim());
+    const formulationText = resp.classical_formulations;
+    const formBlocks = formulationText.split(/\n\n|\d+\.\s+/).filter(b => b.trim());
     
-    formulationLines.slice(0, 3).forEach(line => {
-      if (line.trim()) {
-        const parts = line.split(/[:–-]/);
-        const name = parts[0]?.trim() || 'Classical Formulation';
-        const details = parts.slice(1).join(':').trim() || '';
+    formBlocks.slice(0, 3).forEach(block => {
+      if (block.trim().length > 5) {
+        const lines = block.split('\n').map(l => l.trim()).filter(l => l);
+        const name = lines[0] || 'Classical Formulation';
         
         html += `
           <div class="formulation-card">
             <div class="form-icon">📜</div>
             <div class="form-info">
               <h4>${esc(name)}</h4>
-              <div class="form-english">${esc(name)}</div>
-              <div class="form-meta">
-                <span><strong>Dose:</strong> As prescribed</span>
-                <span><strong>Duration:</strong> 7-14 days</span>
-                <span><strong>Anupana:</strong> Warm water</span>
-              </div>
-              <div class="ref-badge">Classical Text</div>
-            </div>
-          </div>`;
+              <div class="form-meta">`;
+        
+        lines.slice(1).forEach(line => {
+          if (line.toLowerCase().includes('dose') || line.toLowerCase().includes('dosage')) {
+            const dose = line.split(':')[1]?.trim() || 'As prescribed';
+            html += `<span><strong>Dose:</strong> ${esc(dose)}</span>`;
+          } else if (line.toLowerCase().includes('duration')) {
+            const duration = line.split(':')[1]?.trim() || '7-14 days';
+            html += `<span><strong>Duration:</strong> ${esc(duration)}</span>`;
+          } else if (line.toLowerCase().includes('anupana')) {
+            const anupana = line.split(':')[1]?.trim() || 'Warm water';
+            html += `<span><strong>Anupana:</strong> ${esc(anupana)}</span>`;
+          } else if (line.toLowerCase().includes('reference')) {
+            const ref = line.split(':')[1]?.trim() || 'Classical Text';
+            html += `<div class="ref-badge">Ref: ${esc(ref)}</div>`;
+          }
+        });
+        
+        html += `</div></div></div>`;
       }
     });
     
@@ -380,11 +343,12 @@ function renderResults(data, originalSymptom) {
 
   // Panchakarma, Diet, Lifestyle & Yoga Cards
   if (resp.panchakarma_diet_lifestyle_yoga) {
-    const combinedText = resp.panchakarma_diet_lifestyle_yoga.toLowerCase();
+    const combinedText = resp.panchakarma_diet_lifestyle_yoga;
+    const lowerText = combinedText.toLowerCase();
     
     // Panchakarma Card
     const panchakarmaKeywords = ['vamana', 'virechana', 'basti', 'nasya', 'raktamokshana', 'shirodhara'];
-    const foundPanchakarma = panchakarmaKeywords.filter(kw => combinedText.includes(kw));
+    const foundPanchakarma = panchakarmaKeywords.filter(kw => lowerText.includes(kw));
     
     if (foundPanchakarma.length > 0) {
       html += `
@@ -408,9 +372,7 @@ function renderResults(data, originalSymptom) {
       html += `</div></div>`;
     }
 
-    // Diet Card - Extract from API response if available
-    const dietSection = extractSection(resp.panchakarma_diet_lifestyle_yoga, ['diet', 'pathya', 'food']);
-    
+    // Diet Card
     html += `
       <div class="section-card fade-in">
         <div class="section-header">
@@ -422,31 +384,22 @@ function renderResults(data, originalSymptom) {
             <h4>✅ Favorable Foods</h4>
             <div class="diet-tags">`;
     
-    // Extract favorable foods from response
-    const favorLines = dietSection.split('\n').filter(l => 
-      l.toLowerCase().includes('favor') || 
-      l.toLowerCase().includes('recommend') ||
-      l.toLowerCase().includes('good') ||
-      l.includes('✓')
-    );
-    
-    if (favorLines.length > 0) {
-      favorLines.forEach(line => {
-        const foods = line.split(/[,;]/).slice(0, 6);
-        foods.forEach(food => {
-          const cleaned = food.trim().replace(/^[-•*✓]\s*/, '');
-          if (cleaned && cleaned.length > 2) {
-            html += `<span class="diet-tag good">${esc(cleaned)}</span>`;
-          }
-        });
+    // Extract favorable foods
+    const pathyaMatch = combinedText.match(/pathya[:\s-]+(.*?)(?=apathya|vihara|yoga|prognosis|$)/is);
+    if (pathyaMatch) {
+      const pathyaText = pathyaMatch[1];
+      const foods = pathyaText.split(/[,;\n]/).map(f => f.trim()).filter(f => f.length > 2 && f.length < 50);
+      foods.slice(0, 8).forEach(food => {
+        const cleaned = food.replace(/^[-•*\d.)\s]+/, '');
+        if (cleaned) {
+          html += `<span class="diet-tag good">${esc(cleaned)}</span>`;
+        }
       });
     } else {
-      // Default recommendations
       html += `
         <span class="diet-tag good">Warm cooked food</span>
         <span class="diet-tag good">Light meals</span>
         <span class="diet-tag good">Ginger tea</span>
-        <span class="diet-tag good">Honey</span>
       `;
     }
     
@@ -458,24 +411,17 @@ function renderResults(data, originalSymptom) {
             <div class="diet-tags">`;
     
     // Extract foods to avoid
-    const avoidLines = dietSection.split('\n').filter(l => 
-      l.toLowerCase().includes('avoid') || 
-      l.toLowerCase().includes('not') ||
-      l.includes('✗')
-    );
-    
-    if (avoidLines.length > 0) {
-      avoidLines.forEach(line => {
-        const foods = line.split(/[,;]/).slice(0, 6);
-        foods.forEach(food => {
-          const cleaned = food.trim().replace(/^[-•*✗]\s*/, '');
-          if (cleaned && cleaned.length > 2) {
-            html += `<span class="diet-tag bad">${esc(cleaned)}</span>`;
-          }
-        });
+    const apathyaMatch = combinedText.match(/apathya[:\s-]+(.*?)(?=vihara|yoga|prognosis|$)/is);
+    if (apathyaMatch) {
+      const apathyaText = apathyaMatch[1];
+      const foods = apathyaText.split(/[,;\n]/).map(f => f.trim()).filter(f => f.length > 2 && f.length < 50);
+      foods.slice(0, 8).forEach(food => {
+        const cleaned = food.replace(/^[-•*\d.)\s]+/, '');
+        if (cleaned) {
+          html += `<span class="diet-tag bad">${esc(cleaned)}</span>`;
+        }
       });
     } else {
-      // Default restrictions
       html += `
         <span class="diet-tag bad">Cold foods</span>
         <span class="diet-tag bad">Heavy meals</span>
@@ -496,143 +442,110 @@ function renderResults(data, originalSymptom) {
     html += `<div class="two-col">`;
     
     // Lifestyle Card
-    const lifestyleSection = extractSection(resp.panchakarma_diet_lifestyle_yoga, ['lifestyle', 'vihara', 'routine']);
-    const lifestyleItems = lifestyleSection.split('\n')
-      .filter(l => l.trim() && l.length > 5)
-      .slice(0, 5)
-      .map(l => l.trim().replace(/^[-•*]\s*/, '').replace(/^\d+\.\s*/, ''));
-    
-    html += `
-      <div class="section-card fade-in">
-        <div class="section-header">
-          <div class="section-icon terra">🏃</div>
-          <span class="section-title">Lifestyle (Vihāra)</span>
-        </div>
-        <ul class="lifestyle-list">`;
-    
-    if (lifestyleItems.length > 0) {
-      lifestyleItems.forEach(item => {
-        if (item) html += `<li>${esc(item)}</li>`;
-      });
-    } else {
+    const viharaMatch = combinedText.match(/vihara[:\s-]+(.*?)(?=yoga|pranayama|prognosis|$)/is);
+    if (viharaMatch) {
+      const viharaText = viharaMatch[1];
+      const items = viharaText.split('\n').map(l => l.trim()).filter(l => l.length > 5 && l.length < 100);
+      
       html += `
-        <li>Maintain regular daily routine</li>
-        <li>Adequate rest and sleep</li>
-        <li>Avoid stress and anxiety</li>
-        <li>Regular exercise</li>
-      `;
+        <div class="section-card fade-in">
+          <div class="section-header">
+            <div class="section-icon terra">🏃</div>
+            <span class="section-title">Lifestyle (Vihāra)</span>
+          </div>
+          <ul class="lifestyle-list">`;
+      
+      items.slice(0, 5).forEach(item => {
+        const cleaned = item.replace(/^[-•*\d.)\s]+/, '');
+        if (cleaned) {
+          html += `<li>${esc(cleaned)}</li>`;
+        }
+      });
+      
+      html += `</ul></div>`;
     }
-    
-    html += `</ul></div>`;
 
     // Yoga Card
-    const yogaSection = extractSection(resp.panchakarma_diet_lifestyle_yoga, ['yoga', 'pranayama', 'asana']);
-    const yogaItems = yogaSection.split('\n')
-      .filter(l => l.trim() && l.length > 3)
-      .slice(0, 4)
-      .map(l => l.trim().replace(/^[-•*]\s*/, '').replace(/^\d+\.\s*/, ''));
-    
-    html += `
-      <div class="section-card fade-in">
-        <div class="section-header">
-          <div class="section-icon green">🧘</div>
-          <span class="section-title">Yoga & Pranayama</span>
-        </div>
-        <div class="yoga-grid">`;
-    
-    if (yogaItems.length > 0) {
-      yogaItems.forEach(item => {
-        if (item) html += `<span class="yoga-tag">${esc(item)}</span>`;
-      });
-    } else {
+    const yogaMatch = combinedText.match(/(?:yoga|pranayama)[:\s-]+(.*?)(?=prognosis|modern|danger|$)/is);
+    if (yogaMatch) {
+      const yogaText = yogaMatch[1];
+      const items = yogaText.split(/[,;\n]/).map(l => l.trim()).filter(l => l.length > 2 && l.length < 50);
+      
       html += `
-        <span class="yoga-tag">Pranayama (Breathing exercises)</span>
-        <span class="yoga-tag">Anulom Vilom</span>
-        <span class="yoga-tag">Meditation</span>
-      `;
+        <div class="section-card fade-in">
+          <div class="section-header">
+            <div class="section-icon green">🧘</div>
+            <span class="section-title">Yoga & Pranayama</span>
+          </div>
+          <div class="yoga-grid">`;
+      
+      items.slice(0, 6).forEach(item => {
+        const cleaned = item.replace(/^[-•*\d.)\s]+/, '');
+        if (cleaned) {
+          html += `<span class="yoga-tag">${esc(cleaned)}</span>`;
+        }
+      });
+      
+      html += `</div></div>`;
     }
-    
-    html += `</div></div>`;
     
     html += `</div>`; // end two-col
   }
 
   // Prognosis Card
   if (resp.prognosis_modern_warnings) {
-    const prognosisLines = resp.prognosis_modern_warnings.split('\n');
-    const prognosisText = prognosisLines
-      .filter(l => !l.toLowerCase().includes('warning') && !l.includes('⚠️'))
-      .join(' ')
-      .substring(0, 500);
+    const prognosisText = resp.prognosis_modern_warnings;
+    const prognosisMatch = prognosisText.match(/prognosis[:\s-]+(.*?)(?=modern|danger|warning|$)/is);
     
-    if (prognosisText.trim()) {
-      html += `
-        <div class="section-card fade-in">
-          <div class="section-header">
-            <div class="section-icon green">📈</div>
-            <span class="section-title">Prognosis</span>
-          </div>
-          <div class="prognosis-box">
-            ${formatText(prognosisText)}
-          </div>
-        </div>`;
+    if (prognosisMatch) {
+      const prognosis = prognosisMatch[1].trim();
+      if (prognosis.length > 10) {
+        html += `
+          <div class="section-card fade-in">
+            <div class="section-header">
+              <div class="section-icon green">📈</div>
+              <span class="section-title">Prognosis</span>
+            </div>
+            <div class="prognosis-box">
+              ${formatText(prognosis)}
+            </div>
+          </div>`;
+      }
     }
 
     // Warning Signs Card
-    const warningLines = prognosisLines.filter(line => 
-      line.toLowerCase().includes('warning') || 
-      line.toLowerCase().includes('danger') || 
-      line.toLowerCase().includes('severe') ||
-      line.toLowerCase().includes('emergency')
-    );
-    
-    if (warningLines.length > 0) {
-      html += `
-        <div class="section-card fade-in">
-          <div class="section-header">
-            <div class="section-icon red">⚠️</div>
-            <span class="section-title">Warning Signs (Referral Indicators)</span>
-          </div>
-          <div class="warning-list">`;
+    const warningMatch = prognosisText.match(/(?:danger|warning)[:\s-]+(.*?)$/is);
+    if (warningMatch) {
+      const warningText = warningMatch[1];
+      const warnings = warningText.split('\n').map(l => l.trim()).filter(l => l.length > 5);
       
-      warningLines.slice(0, 5).forEach(warning => {
-        const cleaned = warning.trim().replace(/^[-•*⚠️]\s*/, '');
-        if (cleaned) {
-          html += `
-            <div class="warning-item">
-              <div class="warn-icon">!</div>
-              <span>${esc(cleaned)}</span>
-            </div>`;
-        }
-      });
-      
-      html += `</div></div>`;
+      if (warnings.length > 0) {
+        html += `
+          <div class="section-card fade-in">
+            <div class="section-header">
+              <div class="section-icon red">⚠️</div>
+              <span class="section-title">Warning Signs (Referral Indicators)</span>
+            </div>
+            <div class="warning-list">`;
+        
+        warnings.slice(0, 5).forEach(warning => {
+          const cleaned = warning.replace(/^[-•*\d.)\s]+/, '');
+          if (cleaned) {
+            html += `
+              <div class="warning-item">
+                <div class="warn-icon">!</div>
+                <span>${esc(cleaned)}</span>
+              </div>`;
+          }
+        });
+        
+        html += `</div></div>`;
+      }
     }
   }
 
   // Set the HTML
   resultsEl.innerHTML = html;
-}
-
-function extractSection(text, keywords) {
-  if (!text) return '';
-  const lines = text.split('\n');
-  let inSection = false;
-  let sectionLines = [];
-  
-  for (let line of lines) {
-    const lower = line.toLowerCase();
-    if (keywords.some(kw => lower.includes(kw))) {
-      inSection = true;
-      continue;
-    }
-    if (inSection) {
-      if (line.trim() === '' && sectionLines.length > 0) break;
-      if (line.trim()) sectionLines.push(line);
-    }
-  }
-  
-  return sectionLines.join('\n');
 }
 
 function formatText(text) {
@@ -642,7 +555,6 @@ function formatText(text) {
     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.*?)\*/g, '<em>$1</em>')
     .replace(/^#+\s*/gm, '')
-    .replace(/\n/g, ' ')
     .trim();
 }
 
