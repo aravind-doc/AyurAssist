@@ -182,7 +182,7 @@ function esc(s){if(s==null)return'';const d=document.createElement('div');d.text
 function empty(t){
   if(!t||typeof t!=='string')return true;
   const s=t.trim().toLowerCase();
-  if(s.length<3)return true;
+  if(s.length<5)return true;
   return /not provided|not available|not mentioned|no information|not given|not specified|not found|no data|none available|cannot be determined/i.test(s);
 }
 
@@ -209,18 +209,16 @@ function fmt(text){
  * Index 0 = text before first explicit number (the implicit "1" section)
  */
 function splitNumbered(text){
-  if(!text) return [];
- 
-  // Normalize newlines
-  const t = text.replace(/\r/g, '');
- 
-  // Split ONLY when numbering starts on a new line
-  const parts = t.split(/\n\s*(?=\d+\s*[\.\)]\s+)/);
- 
-  return parts
-    .map(p => p.trim())
-    .filter(p => p.length > 10);
-}
+  if(!text)return[];
+
+  // Try "N." pattern (1. 2. 3.) — but NOT decimals like "125.5"
+  // Match: period/space + digit + "." + space (or start of string + digit + ".")
+  let parts = text.split(/(?:^|\.\s+)(\d+)\.\s+(?=\*|[A-Z])/);
+
+  // If that didn't produce good splits, try "N)" pattern
+  if(parts.length<3){
+    parts = text.split(/(?:^|\.\s*|\s+)(\d+)\)\s*/);
+  }
 
   // If still no splits, try newline-based
   if(parts.length<3){
@@ -574,7 +572,7 @@ function render(data,origSym){
     // Extract causes: look for text after "nidana", "causes", etc.
     const causeM=R.overview_dosha_causes.match(/(?:nid[aā]na|causes?|etiolog\w*)\s*(?:include|are|:)?\s*([^.]*(?:\.[^.]*){0,3})/i);
     if(causeM){
-      nidItems=extractItems(causeM[1],4).slice(0,20);
+      nidItems=extractItems(causeM[1],4).slice(0,10);
     }
   }
 
@@ -588,7 +586,7 @@ function render(data,origSym){
     if(sympItems.length<2){
       sympItems=sText.split(/\n/).map(l=>l.replace(/^[\s\-•*▸\d.\)]+/,'').replace(/\*\*/g,'').trim()).filter(l=>l.length>4&&l.length<100&&!empty(l));
     }
-    sympItems=sympItems.slice(0,30);
+    sympItems=sympItems.slice(0,12);
   }
 
   if(nidItems.length>0||sympItems.length>0){
@@ -769,7 +767,7 @@ function render(data,origSym){
     }
 
     if(q5.warnings&&!empty(q5.warnings)){
-      const wItems=extractItems(q5.warnings,5).slice(0,20);
+      const wItems=extractItems(q5.warnings,5).slice(0,8);
       if(wItems.length>0){
         any6=true;
         H+=`<div class="sc fade-in">
