@@ -249,6 +249,9 @@ function splitInlineNumbered(text){
 
 /*
  * smartExtract: Try numbered → comma → sentence splitting.
+ * CRITICAL: Only comma-split when items are truly standalone short words
+ * (e.g. "wheat, barley, rice"), NOT when text has phrases with commas
+ * (e.g. "light, warm, and easily digestible foods like rice gruel").
  * Returns array of clean strings.
  */
 function smartExtract(text,minLen){
@@ -259,13 +262,30 @@ function smartExtract(text,minLen){
   if(numbered.length>=2){
     return numbered.filter(function(n){return !n.isPreamble}).map(function(n){return n.text}).filter(function(s){return s.length>=minLen&&s.length<150});
   }
-  // 2. Comma-separated short items
+  // 2. Comma-separated — ONLY if items are short standalone words (max 4 words, no "and X" fragments)
   var commaItems=text.split(/,\s*/).map(function(s){return stripMd(s.replace(/^[\s\-\u2022*\u25B8\d.\)]+/,'').replace(/\.\s*$/,'')).trim()}).filter(function(s){return s.length>=3&&s.length<80});
-  if(commaItems.length>=3&&commaItems.every(function(s){return s.length<60})){
+  var isRealList=commaItems.length>=3&&commaItems.every(function(s){
+    var words=s.split(/\s+/).length;
+    // Real list items: 1-4 words, don't start with "and ", don't contain sentences
+    return words<=4&&!/^and\s/i.test(s)&&s.indexOf('.')<0;
+  });
+  if(isRealList){
     return commaItems.filter(function(s){return s.length>=minLen});
   }
   // 3. Sentence-based
   return text.split(/(?<=[.!?;])\s+/).map(function(s){return stripMd(s.replace(/^[\s\-\u2022*\u25B8\d.\)]+/,'')).trim()}).filter(function(s){return s.length>=minLen&&s.length<200});
+}
+
+/*
+ * isProse: Check if text is continuous prose (not a structured list).
+ * Prose = fewer than 3 sentences OR sentences are long (avg > 60 chars).
+ */
+function isProse(text){
+  if(!text)return true;
+  var sents=text.split(/(?<=[.!?])\s+/).filter(function(s){return s.trim().length>5});
+  if(sents.length<=2)return true;
+  var avgLen=sents.reduce(function(a,s){return a+s.length},0)/sents.length;
+  return avgLen>60;
 }
 
 /* Deduplicate by prefix similarity */
@@ -467,47 +487,55 @@ function render(data,origSym){
     H+='</div>';
   }
 
-  // 2. Nidana — extract FULL cause sentence (fix: no more "s include...")
+  // 2. Nidana — extract FULL cause sentence, show as paragraph (LLM gives prose, not lists)
   var nidText='';
   if(!empty(R.overview_dosha_causes)){
     var sentences=R.overview_dosha_causes.split(/(?<=[.!?])\s+/);
+    var nidSentences=[];
     for(var si=0;si<sentences.length;si++){
-      if(/nid[a\u0101]na|causes?\s|etiolog/i.test(sentences[si])){nidText=sentences[si];break}
+      if(/nid[a\u0101]na|causes?\s|etiolog|provocat|aggravat/i.test(sentences[si])){nidSentences.push(sentences[si])}
     }
+    nidText=nidSentences.join(' ').trim();
+    // If nothing found, try last sentence of overview (often contains causes)
+    if(!nidText&&sentences.length>1)nidText=sentences[sentences.length-1].trim();
   }
-  var nidItems=nidText?smartExtract(nidText,4).slice(0,10):[];
 
-  // 2b. Symptoms — detect inline "1) Name—desc" pattern; dedup; cap at 12
+  // 2b. Symptoms — detect inline "1) Name—desc" pattern; filter meta-sentences; dedup; cap at 12
   var sympHTML='';
   if(!empty(R.symptoms)){
     var raw=R.symptoms;
+    // Filter function: remove meta-sentences that describe symptoms generically
+    var isMetaSentence=function(s){return /^these\s+(indicate|signs?|symptoms?|reflect|arise|are\s+due|manifest)/i.test(s.trim())||/^early\s+recognition/i.test(s.trim())};
     var numbered=splitInlineNumbered(raw);
     if(numbered.length>=3){
-      var items=dedup(numbered.filter(function(n){return !n.isPreamble}).map(function(n){return n.text})).slice(0,12);
+      var items=dedup(numbered.filter(function(n){return !n.isPreamble}).map(function(n){return n.text})).filter(function(s){return !isMetaSentence(s)}).slice(0,12);
       var preamble=numbered.filter(function(n){return n.isPreamble})[0];
-      if(preamble&&preamble.text.length>15)sympHTML+='<p class="desc-text" style="margin-bottom:12px">'+fmt(preamble.text)+'</p>';
-      sympHTML+='<div class="tag-list">'+items.map(function(s){return '<span class="tag-symptom">'+esc(s)+'</span>'}).join('')+'</div>';
+      if(preamble&&preamble.text.length>15&&!isMetaSentence(preamble.text))sympHTML+='<p class="desc-text" style="margin-bottom:12px">'+fmt(preamble.text)+'</p>';
+      if(items.length>0)sympHTML+='<div class="tag-list">'+items.map(function(s){return '<span class="tag-symptom">'+esc(s)+'</span>'}).join('')+'</div>';
+      else sympHTML='<p class="desc-text">'+fmt(raw)+'</p>';
     }else{
+      // Check if it's prose — if so, show as paragraph
       var sents=raw.split(/(?<=[.!?])\s+/).filter(function(s){return s.trim().length>5});
-      if(sents.length<=2){sympHTML='<p class="desc-text">'+fmt(raw)+'</p>'}
-      else{
-        var items2=dedup(sents.map(function(s){return stripMd(s).trim()})).filter(function(s){return s.length>4&&s.length<150}).slice(0,12);
+      var realSents=sents.filter(function(s){return !isMetaSentence(s)});
+      if(realSents.length<=3||isProse(raw)){
+        sympHTML='<p class="desc-text">'+fmt(raw)+'</p>';
+      }else{
+        var items2=dedup(realSents.map(function(s){return stripMd(s).trim()})).filter(function(s){return s.length>4&&s.length<150}).slice(0,12);
         sympHTML='<div class="tag-list">'+items2.map(function(s){return '<span class="tag-symptom">'+esc(s)+'</span>'}).join('')+'</div>';
       }
     }
   }
 
-  var hasNid=nidItems.length>0||nidText.length>10,hasSym=sympHTML.length>0;
+  var hasNid=nidText.length>10,hasSym=sympHTML.length>0;
   if(hasNid&&hasSym){
     H+='<div class="two-col fade-in">';
     H+='<div class="sc" style="margin-bottom:0"><div class="sc-head"><div class="sc-icon amber">🔍</div><span class="sc-title">Root Causes (Nidāna)</span></div>';
-    if(nidItems.length>=2)H+='<div class="tag-list">'+nidItems.map(function(n){return '<span class="tag-nidana">'+esc(n)+'</span>'}).join('')+'</div>';
-    else H+='<p class="desc-text">'+fmt(nidText)+'</p>';
+    H+='<p class="desc-text">'+fmt(nidText)+'</p>';
     H+='</div>';
     H+='<div class="sc" style="margin-bottom:0"><div class="sc-head"><div class="sc-icon terra">🩺</div><span class="sc-title">Symptoms (Rūpa)</span></div>'+sympHTML+'</div>';
     H+='</div>';
   }else{
-    if(hasNid){H+='<div class="sc fade-in"><div class="sc-head"><div class="sc-icon amber">🔍</div><span class="sc-title">Root Causes (Nidāna)</span></div>';if(nidItems.length>=2)H+='<div class="tag-list">'+nidItems.map(function(n){return '<span class="tag-nidana">'+esc(n)+'</span>'}).join('')+'</div>';else H+='<p class="desc-text">'+fmt(nidText)+'</p>';H+='</div>'}
+    if(hasNid){H+='<div class="sc fade-in"><div class="sc-head"><div class="sc-icon amber">🔍</div><span class="sc-title">Root Causes (Nidāna)</span></div><p class="desc-text">'+fmt(nidText)+'</p></div>'}
     if(hasSym){H+='<div class="sc fade-in"><div class="sc-head"><div class="sc-icon terra">🩺</div><span class="sc-title">Symptoms (Rūpa)</span></div>'+sympHTML+'</div>'}
   }
 
@@ -537,8 +565,10 @@ function render(data,origSym){
     if(q4.panchakarma&&!empty(q4.panchakarma)){
       any5=true;var pkText=q4.panchakarma.replace(/^(?:Recommended\s+)?panchakarma\s+(?:treatment\s+)?(?:for\s+\w+\s*(?:\([^)]*\))?\s*)?(?:is\s+|includes?\s+)?/i,'').trim();
       var pkItems=smartExtract(pkText,5).filter(function(s){return s.length<200}).slice(0,8);
+      // Only use cards if items are clearly separate treatments, not prose
+      var pkIsRealList=pkItems.length>=3&&pkItems.every(function(s){return s.split(/\s+/).length<=15});
       H+='<div class="sc fade-in"><div class="sc-head"><div class="sc-icon amber">🛁</div><span class="sc-title">Panchakarma Therapies</span></div>';
-      if(pkItems.length>2)H+='<div class="remedy-grid">'+pkItems.map(function(p){return '<div class="pk-card"><p>'+esc(p)+'</p></div>'}).join('')+'</div>';
+      if(pkIsRealList)H+='<div class="remedy-grid">'+pkItems.map(function(p){return '<div class="pk-card"><p>'+esc(p)+'</p></div>'}).join('')+'</div>';
       else H+='<div class="pk-card"><p>'+fmt(pkText)+'</p></div>';
       H+='</div>';
     }
@@ -552,21 +582,33 @@ function render(data,origSym){
         var pC=hasP?q4.pathya.replace(/^Pathya\s*[-\u2013:]\s*(?:foods?\s+to\s+eat\s*[-\u2013:]?\s*)?/i,'').trim():'';
         var aC=hasA?q4.apathya.replace(/^Apathya\s*[-\u2013:]\s*(?:foods?\s+to\s+avoid\s*[-\u2013:]?\s*)?/i,'').trim():'';
         var pI=smartExtract(pC,3).slice(0,10),aI=smartExtract(aC,3).slice(0,10);
-        if(pI.length>0||aI.length>0){
+        // Check if extractions are real list items (short) or broken prose fragments
+        var pIsRealList=pI.length>=3&&pI.every(function(s){return s.split(/\s+/).length<=4&&!/^and\s/i.test(s)});
+        var aIsRealList=aI.length>=3&&aI.every(function(s){return s.split(/\s+/).length<=4&&!/^and\s/i.test(s)});
+        if(pIsRealList||aIsRealList){
           H+='<div class="diet-grid">';
-          if(pI.length)H+='<div class="diet-col favor"><h4>✅ Favorable</h4><div class="diet-tags">'+pI.map(function(f){return '<span class="diet-tag good">'+esc(f)+'</span>'}).join('')+'</div></div>';
-          if(aI.length)H+='<div class="diet-col avoid"><h4>❌ Avoid</h4><div class="diet-tags">'+aI.map(function(f){return '<span class="diet-tag bad">'+esc(f)+'</span>'}).join('')+'</div></div>';
+          if(pIsRealList&&pI.length)H+='<div class="diet-col favor"><h4>✅ Favorable</h4><div class="diet-tags">'+pI.map(function(f){return '<span class="diet-tag good">'+esc(f)+'</span>'}).join('')+'</div></div>';
+          else if(hasP)H+='<div class="diet-col favor"><h4>✅ Favorable</h4><p class="desc-text" style="font-size:13px">'+fmt(pC)+'</p></div>';
+          if(aIsRealList&&aI.length)H+='<div class="diet-col avoid"><h4>❌ Avoid</h4><div class="diet-tags">'+aI.map(function(f){return '<span class="diet-tag bad">'+esc(f)+'</span>'}).join('')+'</div></div>';
+          else if(hasA)H+='<div class="diet-col avoid"><h4>❌ Avoid</h4><p class="desc-text" style="font-size:13px">'+fmt(aC)+'</p></div>';
           H+='<div class="diet-note">💡 Follow dietary guidelines suited to your prakṛti. Consult an Ayurvedic practitioner.</div></div>';
         }else{
-          if(hasP)H+='<p class="desc-text" style="margin-bottom:8px"><strong>Favorable:</strong> '+fmt(pC)+'</p>';
-          if(hasA)H+='<p class="desc-text"><strong>Avoid:</strong> '+fmt(aC)+'</p>';
+          // Prose — show as formatted paragraphs
+          if(hasP)H+='<p class="desc-text" style="margin-bottom:8px"><strong>✅ Favorable:</strong> '+fmt(pC)+'</p>';
+          if(hasA)H+='<p class="desc-text" style="margin-bottom:8px"><strong>❌ Avoid:</strong> '+fmt(aC)+'</p>';
+          H+='<div class="diet-note">💡 Follow dietary guidelines suited to your prakṛti. Consult an Ayurvedic practitioner.</div>';
         }
       }
       if(hasV){
         var vC=q4.vihara.replace(/^Vih[a\u0101]ra\s*[-\u2013:]\s*(?:lifestyle\s+advice\s*[-\u2013:]?\s*)?/i,'').trim();
+        // Remove trailing numbered content that leaked from next section (e.g. "4) Recommended...")
+        vC=vC.replace(/\s*\d+\)\s+(?:Recommended|Yoga|Pr[a\u0101])[\s\S]*$/i,'').trim();
+        vC=vC.replace(/\s*\d+\.\s+(?:Recommended|Yoga|Pr[a\u0101])[\s\S]*$/i,'').trim();
         var vI=smartExtract(vC,4).filter(function(s){return s.length<150}).slice(0,8);
+        // Check if items are real list items or broken prose
+        var vIsRealList=vI.length>=3&&vI.every(function(s){return s.split(/\s+/).length<=8&&!/^and\s/i.test(s)&&s.indexOf('.')<0});
         H+='<div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)"><div style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><span style="font-size:16px">🏃</span><span style="font-family:\'Fraunces\',serif;font-size:15px;font-weight:600;color:var(--text-dark)">Lifestyle (Vihāra)</span></div>';
-        if(vI.length>2)H+='<ul class="ls-list">'+vI.map(function(i){return '<li>'+esc(i)+'</li>'}).join('')+'</ul>';
+        if(vIsRealList)H+='<ul class="ls-list">'+vI.map(function(i){return '<li>'+esc(i)+'</li>'}).join('')+'</ul>';
         else H+='<p class="desc-text">'+fmt(vC)+'</p>';
         H+='</div>';
       }
