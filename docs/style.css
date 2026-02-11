@@ -88,6 +88,12 @@
     .warn-icon{width:20px;height:20px;background:var(--red-warn);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
     .diff-card{padding:14px 18px;background:var(--bg-cream);border:1px solid var(--border);border-radius:var(--r-md);border-left:3px solid #5B8DEF}
     .diff-card p{font-size:13px;color:var(--text-mid);line-height:1.5}
+    .modern-section{font-size:14px;color:var(--text-mid);line-height:1.7}
+    .modern-section .modern-sub{font-weight:600;color:var(--text-dark);font-size:14px;margin:14px 0 6px;padding-bottom:4px;border-bottom:1px solid var(--border)}
+    .modern-section .modern-sub:first-child{margin-top:0}
+    .modern-section ul{list-style:none;padding:0;margin:6px 0 0}
+    .modern-section ul li{padding:5px 0 5px 20px;position:relative;font-size:13px;line-height:1.5}
+    .modern-section ul li::before{content:'\2022';position:absolute;left:4px;color:var(--green-mid);font-weight:700}
     .disclaimer{margin-top:20px;padding:16px 20px;background:var(--bg-warm);border-radius:var(--r-md);font-size:13px;color:var(--text-light);text-align:center;line-height:1.5;border:1px solid var(--border)}
     .fade-in{animation:fadeUp .5s ease both}
     @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
