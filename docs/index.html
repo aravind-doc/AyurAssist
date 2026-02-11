@@ -103,6 +103,15 @@
     .modern-section ul li{padding:5px 0 5px 20px;position:relative;font-size:13px;line-height:1.5}
     .modern-section ul li::before{content:'\2022';position:absolute;left:4px;color:var(--green-mid);font-weight:700}
     .disclaimer{margin-top:20px;padding:16px 20px;background:var(--bg-warm);border-radius:var(--r-md);font-size:13px;color:var(--text-light);text-align:center;line-height:1.5;border:1px solid var(--border)}
+    .pipeline-flow{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:20px;padding:16px 0 4px;flex-wrap:wrap}
+    .pipe-step{display:flex;flex-direction:column;align-items:center;gap:4px}
+    .pipe-icon{font-size:22px;width:40px;height:40px;display:flex;align-items:center;justify-content:center;background:var(--bg-warm);border-radius:10px}
+    .pipe-step span{font-size:11px;font-weight:500;color:var(--text-mid);white-space:nowrap}
+    .pipe-arrow{font-size:16px;color:var(--green-soft);font-weight:700;margin:0 2px;align-self:center;margin-bottom:16px}
+    .pipeline-tagline{text-align:center;font-size:12px;color:var(--text-light);margin-top:8px;font-style:italic}
+    .pipeline-tagline strong{color:var(--green-deep)}
+    .invest-card{padding:14px 18px;background:var(--bg-cream);border:1px solid var(--border);border-radius:var(--r-md);border-left:3px solid var(--amber)}
+    .invest-card p{font-size:13px;color:var(--text-mid);line-height:1.5}
     .fade-in{animation:fadeUp .5s ease both}
     @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
     @media(max-width:640px){.two-col,.diet-grid,.remedy-fields{grid-template-columns:1fr}.header h1{font-size:32px}.disease-header h2{font-size:24px}.search-bar{flex-direction:column}.app{padding:16px 12px 40px}}
@@ -139,6 +148,19 @@
       <span class="tech-pill">🤖 AyurParam LLM</span>
       <span class="tech-pill">📋 226 WHO ITA Conditions</span>
     </div>
+    <!-- Pipeline flowchart -->
+    <div class="pipeline-flow">
+      <div class="pipe-step"><div class="pipe-icon">💬</div><span>Symptom Input</span></div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-step"><div class="pipe-icon">🧠</div><span>Biomedical NER</span></div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-step"><div class="pipe-icon">🔗</div><span>UMLS + WHO ITA</span></div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-step"><div class="pipe-icon">🏥</div><span>SNOMED CT</span></div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-step"><div class="pipe-icon">🌿</div><span>AyurParam</span></div>
+    </div>
+    <p class="pipeline-tagline"><em>"Because Ayurveda deserves global interoperability"</em> — <strong>KV</strong></p>
   </section>
   <div id="loading" class="loading hidden"><p>🔄 AI is analyzing your symptoms... This may take 30–90s</p></div>
   <div id="error" class="error-alert hidden"></div>
@@ -153,11 +175,12 @@
     <p class="sanskrit" id="sanskritName"></p>
     <div class="dosha-line" id="doshaLine"></div>
     <div class="snomed-row" id="snomedRow"><span>SNOMED CT:</span><span class="snomed-code" id="snomedCode"></span><span id="snomedName"></span></div>
+    <div class="snomed-row" id="icdRow" style="display:none"><span>ICD-10:</span><span class="snomed-code" id="icdCode" style="background:#E3F2FD;color:#1565C0"></span></div>
   </div>
   <div id="results" class="hidden"></div>
   <div id="disclaimerFooter" class="disclaimer hidden">
     ⚕️ This information is for <strong>educational purposes only</strong>. Always consult a qualified Ayurvedic practitioner before starting any treatment.
-    <br><span style="font-size:11px;margin-top:4px;display:inline-block">AyurAssist v3.0 · NLP + LLM · WHO ITA · SNOMED CT</span>
+    <br><span style="font-size:11px;margin-top:4px;display:inline-block">AyurAssist v7.0 · NLP + LLM · WHO ITA · SNOMED CT · ICD-10</span>
   </div>
 </div>
 
@@ -435,6 +458,12 @@ function render(data,origSym){
   $('snomedRow').style.display=hasSNOMED?'flex':'none';
   if(hasSNOMED){$('snomedCode').textContent=snomed;$('snomedName').textContent=data.snomed_name||cond}
 
+  // ICD-10
+  var icd10=data.icd10_code||(data.results&&data.results[0]&&data.results[0].icd10_code)||'';
+  var hasICD=icd10&&icd10!=='N/A'&&icd10.length>1;
+  $('icdRow').style.display=hasICD?'flex':'none';
+  if(hasICD)$('icdCode').textContent=icd10;
+
   var H='';
 
   // ═══ 1. DISEASE DESCRIPTION ═══
@@ -606,6 +635,12 @@ function render(data,origSym){
     H+='<div class="diff-card"><p>'+fmt(R.differential_diagnosis)+'</p></div></div>';
   }
 
+  // ═══ 11. INVESTIGATIONS & LABS ═══
+  if(!empty(R.investigations_labs)){
+    H+='<div class="sc fade-in"><div class="sc-head"><div class="sc-icon amber">\uD83E\uDDEA</div><span class="sc-title">Investigations & Laboratory Tests</span></div>';
+    H+='<div class="invest-card"><p>'+fmt(R.investigations_labs)+'</p></div></div>';
+  }
+
   // ═══ BACKWARD COMPAT: old combined keys ═══
   if(!empty(R.panchakarma_diet_lifestyle_yoga)&&empty(R.panchakarma)){
     H+='<div class="sc fade-in"><div class="sc-head"><div class="sc-icon amber">\uD83D\uDEC1</div><span class="sc-title">Treatment Protocols</span></div>';
@@ -617,7 +652,7 @@ function render(data,origSym){
   }
 
   // ═══ CATCH-ALL ═══
-  var done=['overview_dosha_causes','symptoms','single_drug_remedies','classical_formulations','panchakarma','diet_lifestyle','yoga','prognosis','modern_correlation_warnings','differential_diagnosis','panchakarma_diet_lifestyle_yoga','prognosis_modern_warnings'];
+  var done=['overview_dosha_causes','symptoms','single_drug_remedies','classical_formulations','panchakarma','diet_lifestyle','yoga','prognosis','modern_correlation_warnings','differential_diagnosis','investigations_labs','panchakarma_diet_lifestyle_yoga','prognosis_modern_warnings'];
   Object.keys(R).forEach(function(k){
     if(done.indexOf(k)>=0||!R[k]||typeof R[k]!=='string'||empty(R[k]))return;
     H+='<div class="sc fade-in"><div class="sc-head"><div class="sc-icon amber">\uD83D\uDCC4</div><span class="sc-title">'+esc(k.replace(/_/g,' ').replace(/\b\w/g,function(c){return c.toUpperCase()}))+'</span></div><p class="desc-text">'+fmt(R[k])+'</p></div>';
