@@ -442,16 +442,53 @@ function render(data,origSym){
     }
   }
 
-  // ═══ 10. DIFFERENTIAL DIAGNOSIS ═══
+  // ═══ 10. DIFFERENTIAL DIAGNOSIS — parse if numbered ═══
   if(!empty(R.differential_diagnosis)){
     H+='<div class="sc fade-in"><div class="sc-head"><div class="sc-icon blue">\uD83E\uDE7A</div><span class="sc-title">Differential Diagnosis (Vyavachedaka Nid\u0101na)</span></div>';
-    H+='<div class="diff-card"><p>'+fmt(R.differential_diagnosis)+'</p></div></div>';
+    var ddNumbered=splitInlineNumbered(R.differential_diagnosis);
+    var ddItems=ddNumbered.length>=2?ddNumbered.filter(function(n){return !n.isPreamble}).map(function(n){return n.text}):[];
+    var ddPreamble=ddNumbered.filter(function(n){return n.isPreamble})[0];
+    if(ddItems.length>=2){
+      if(ddPreamble&&ddPreamble.text.length>10)H+='<p class="desc-text" style="margin-bottom:12px">'+fmt(ddPreamble.text)+'</p>';
+      H+='<div class="dd-grid">';
+      ddItems.forEach(function(item){
+        var dashSplit=item.match(/^(.+?)\s*[\u2014\u2013\-]{1,2}\s*(.+)$/);
+        if(dashSplit){
+          H+='<div class="dd-item"><div class="dd-name">'+esc(stripMd(dashSplit[1]))+'</div><div class="dd-detail">'+esc(stripMd(dashSplit[2]))+'</div></div>';
+        }else{
+          H+='<div class="dd-item"><div class="dd-name">'+esc(stripMd(item))+'</div></div>';
+        }
+      });
+      H+='</div>';
+    }else{
+      H+='<div class="diff-card"><p>'+fmt(R.differential_diagnosis)+'</p></div>';
+    }
+    H+='</div>';
   }
 
-  // ═══ 11. INVESTIGATIONS & LABS ═══
+  // ═══ 11. INVESTIGATIONS & LABS — parse numbered items into structured list ═══
   if(!empty(R.investigations_labs)){
     H+='<div class="sc fade-in"><div class="sc-head"><div class="sc-icon amber">\uD83E\uDDEA</div><span class="sc-title">Investigations & Laboratory Tests</span></div>';
-    H+='<div class="invest-card"><p>'+fmt(R.investigations_labs)+'</p></div></div>';
+    var invNumbered=splitInlineNumbered(R.investigations_labs);
+    var invItems=invNumbered.length>=2?invNumbered.filter(function(n){return !n.isPreamble}).map(function(n){return n.text}):[];
+    var invPreamble=invNumbered.filter(function(n){return n.isPreamble})[0];
+    if(invItems.length>=2){
+      if(invPreamble&&invPreamble.text.length>10)H+='<p class="desc-text" style="margin-bottom:12px">'+fmt(invPreamble.text)+'</p>';
+      H+='<div class="invest-grid">';
+      invItems.forEach(function(item){
+        // Try to split "Test name (Sanskrit) — conclusion/finding"
+        var dashSplit=item.match(/^(.+?)\s*[\u2014\u2013\-]{1,2}\s*(.+)$/);
+        if(dashSplit){
+          H+='<div class="invest-item"><div class="invest-name">'+esc(stripMd(dashSplit[1]))+'</div><div class="invest-finding">'+esc(stripMd(dashSplit[2]))+'</div></div>';
+        }else{
+          H+='<div class="invest-item"><div class="invest-name">'+esc(stripMd(item))+'</div></div>';
+        }
+      });
+      H+='</div>';
+    }else{
+      H+='<div class="invest-card"><p>'+fmt(R.investigations_labs)+'</p></div>';
+    }
+    H+='</div>';
   }
 
   // ═══ BACKWARD COMPAT: old combined keys ═══
