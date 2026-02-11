@@ -271,6 +271,12 @@ function render(data,origSym){
   $('snomedRow').style.display=hasSNOMED?'flex':'none';
   if(hasSNOMED){$('snomedCode').textContent=snomed;$('snomedName').textContent=data.snomed_name||cond}
 
+  // ICD-10
+  var icd10=data.icd10_code||(data.results&&data.results[0]&&data.results[0].icd10_code)||'';
+  var hasICD=icd10&&icd10!=='N/A'&&icd10.length>1;
+  $('icdRow').style.display=hasICD?'flex':'none';
+  if(hasICD)$('icdCode').textContent=icd10;
+
   var H='';
 
   // ═══ 1. DISEASE DESCRIPTION ═══
@@ -442,6 +448,12 @@ function render(data,origSym){
     H+='<div class="diff-card"><p>'+fmt(R.differential_diagnosis)+'</p></div></div>';
   }
 
+  // ═══ 11. INVESTIGATIONS & LABS ═══
+  if(!empty(R.investigations_labs)){
+    H+='<div class="sc fade-in"><div class="sc-head"><div class="sc-icon amber">\uD83E\uDDEA</div><span class="sc-title">Investigations & Laboratory Tests</span></div>';
+    H+='<div class="invest-card"><p>'+fmt(R.investigations_labs)+'</p></div></div>';
+  }
+
   // ═══ BACKWARD COMPAT: old combined keys ═══
   if(!empty(R.panchakarma_diet_lifestyle_yoga)&&empty(R.panchakarma)){
     H+='<div class="sc fade-in"><div class="sc-head"><div class="sc-icon amber">\uD83D\uDEC1</div><span class="sc-title">Treatment Protocols</span></div>';
@@ -453,7 +465,7 @@ function render(data,origSym){
   }
 
   // ═══ CATCH-ALL ═══
-  var done=['overview_dosha_causes','symptoms','single_drug_remedies','classical_formulations','panchakarma','diet_lifestyle','yoga','prognosis','modern_correlation_warnings','differential_diagnosis','panchakarma_diet_lifestyle_yoga','prognosis_modern_warnings'];
+  var done=['overview_dosha_causes','symptoms','single_drug_remedies','classical_formulations','panchakarma','diet_lifestyle','yoga','prognosis','modern_correlation_warnings','differential_diagnosis','investigations_labs','panchakarma_diet_lifestyle_yoga','prognosis_modern_warnings'];
   Object.keys(R).forEach(function(k){
     if(done.indexOf(k)>=0||!R[k]||typeof R[k]!=='string'||empty(R[k]))return;
     H+='<div class="sc fade-in"><div class="sc-head"><div class="sc-icon amber">\uD83D\uDCC4</div><span class="sc-title">'+esc(k.replace(/_/g,' ').replace(/\b\w/g,function(c){return c.toUpperCase()}))+'</span></div><p class="desc-text">'+fmt(R[k])+'</p></div>';
