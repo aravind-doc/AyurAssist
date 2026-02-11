@@ -70,6 +70,36 @@ function dedup(items){
   return result;
 }
 
+/* Universal repetition cleaner — detects "X, X, X, X..." or "X. X. X." hallucination floods
+   and truncates to first meaningful occurrence. Returns cleaned text. */
+function cleanRepetition(text){
+  if(!text||text.length<50)return text;
+  // Find repeated token patterns: any word/phrase repeated 5+ times
+  // Strategy: split by comma or period, count freq of each chunk
+  var chunks=text.split(/[,;]\s*/).map(function(s){return s.trim()}).filter(function(s){return s.length>0});
+  if(chunks.length<5)return text;
+  var freq={};var maxChunk='';var maxCount=0;
+  for(var i=0;i<chunks.length;i++){
+    var norm=chunks[i].toLowerCase().replace(/[^a-z0-9\s]/g,'').trim();
+    if(norm.length<2)continue;
+    freq[norm]=(freq[norm]||0)+1;
+    if(freq[norm]>maxCount){maxCount=freq[norm];maxChunk=norm}
+  }
+  // If any chunk repeats more than 4 times, it's a hallucination
+  if(maxCount>4){
+    // Find the first occurrence and keep text up to just after it
+    var seen2={};var cleaned=[];var dupCount=0;
+    for(var j=0;j<chunks.length;j++){
+      var n2=chunks[j].toLowerCase().replace(/[^a-z0-9\s]/g,'').trim();
+      if(seen2[n2]){dupCount++;if(dupCount>2)continue}
+      else{seen2[n2]=true;dupCount=0}
+      cleaned.push(chunks[j]);
+    }
+    return cleaned.join(', ').trim().replace(/,\s*$/,'')+'.'
+  }
+  return text;
+}
+
 /* ═══ OTTAMOOLI PARSER — rewritten for "Name: Sanskrit - Part Used: X - Preparation: Y - Dosage: Z" format ═══ */
 function parseRemedies(rawText){
   if(!rawText||empty(rawText))return [];
@@ -379,7 +409,7 @@ function render(data,origSym){
 
   // ═══ 7. YOGA — with dedup + cap at 10 to prevent hallucination floods ═══
   if(!empty(R.yoga)){
-    var yogaRaw=R.yoga;
+    var yogaRaw=cleanRepetition(R.yoga);
     // Split numbered items, dedup, cap at 10
     var yogaNumbered=splitInlineNumbered(yogaRaw);
     var yogaItems=[];
@@ -466,18 +496,18 @@ function render(data,origSym){
     H+='</div>';
   }
 
-  // ═══ 11. INVESTIGATIONS & LABS — parse numbered items into structured list ═══
+  // ═══ 11. INVESTIGATIONS & LABS — clean repetitions + parse numbered items ═══
   if(!empty(R.investigations_labs)){
+    var invRaw=cleanRepetition(R.investigations_labs);
     H+='<div class="sc fade-in"><div class="sc-head"><div class="sc-icon amber">\uD83E\uDDEA</div><span class="sc-title">Investigations & Laboratory Tests</span></div>';
-    var invNumbered=splitInlineNumbered(R.investigations_labs);
+    var invNumbered=splitInlineNumbered(invRaw);
     var invItems=invNumbered.length>=2?invNumbered.filter(function(n){return !n.isPreamble}).map(function(n){return n.text}):[];
     var invPreamble=invNumbered.filter(function(n){return n.isPreamble})[0];
     if(invItems.length>=2){
       if(invPreamble&&invPreamble.text.length>10)H+='<p class="desc-text" style="margin-bottom:12px">'+fmt(invPreamble.text)+'</p>';
       H+='<div class="invest-grid">';
-      invItems.forEach(function(item){
-        // Try to split "Test name (Sanskrit) — conclusion/finding"
-        var dashSplit=item.match(/^(.+?)\s*[\u2014\u2013\-]{1,2}\s*(.+)$/);
+      dedup(invItems).slice(0,12).forEach(function(item){
+        var dashSplit=item.match(/^(.+?)\s*[\u2014\u2013]{1}\s*(.+)$/)||item.match(/^(.+?)\s+\-\s+(.+)$/);
         if(dashSplit){
           H+='<div class="invest-item"><div class="invest-name">'+esc(stripMd(dashSplit[1]))+'</div><div class="invest-finding">'+esc(stripMd(dashSplit[2]))+'</div></div>';
         }else{
@@ -486,9 +516,23 @@ function render(data,origSym){
       });
       H+='</div>';
     }else{
-      H+='<div class="invest-card"><p>'+fmt(R.investigations_labs)+'</p></div>';
+      H+='<div class="invest-card"><p>'+fmt(invRaw)+'</p></div>';
     }
     H+='</div>';
+  }
+
+  // ═══ 12. PREVENTION & RECURRENCE (Apunarbhava) ═══
+  if(!empty(R.prevention_recurrence)){
+    var prevText=cleanRepetition(R.prevention_recurrence);
+    H+='<div class="sc fade-in"><div class="sc-head"><div class="sc-icon green">\uD83D\uDEE1\uFE0F</div><span class="sc-title">Prevention & Non-Recurrence (Apunarbhava)</span></div>';
+    H+='<div class="prev-card"><p>'+fmt(prevText)+'</p></div></div>';
+  }
+
+  // ═══ 13. PSYCHOTHERAPY (Satvavajaya Chikitsa) ═══
+  if(!empty(R.psychotherapy_satvavajaya)){
+    var psyText=cleanRepetition(R.psychotherapy_satvavajaya);
+    H+='<div class="sc fade-in"><div class="sc-head"><div class="sc-icon blue">\uD83E\uDDD8\u200D\u2642\uFE0F</div><span class="sc-title">Psychotherapy (S\u0101tvavaj\u0101ya Chikits\u0101)</span></div>';
+    H+='<div class="psy-card"><p>'+fmt(psyText)+'</p></div></div>';
   }
 
   // ═══ BACKWARD COMPAT: old combined keys ═══
@@ -502,7 +546,7 @@ function render(data,origSym){
   }
 
   // ═══ CATCH-ALL ═══
-  var done=['overview_dosha_causes','symptoms','single_drug_remedies','classical_formulations','panchakarma','diet_lifestyle','yoga','prognosis','modern_correlation_warnings','differential_diagnosis','investigations_labs','panchakarma_diet_lifestyle_yoga','prognosis_modern_warnings'];
+  var done=['overview_dosha_causes','symptoms','single_drug_remedies','classical_formulations','panchakarma','diet_lifestyle','yoga','prognosis','modern_correlation_warnings','differential_diagnosis','investigations_labs','prevention_recurrence','psychotherapy_satvavajaya','panchakarma_diet_lifestyle_yoga','prognosis_modern_warnings'];
   Object.keys(R).forEach(function(k){
     if(done.indexOf(k)>=0||!R[k]||typeof R[k]!=='string'||empty(R[k]))return;
     H+='<div class="sc fade-in"><div class="sc-head"><div class="sc-icon amber">\uD83D\uDCC4</div><span class="sc-title">'+esc(k.replace(/_/g,' ').replace(/\b\w/g,function(c){return c.toUpperCase()}))+'</span></div><p class="desc-text">'+fmt(R[k])+'</p></div>';
