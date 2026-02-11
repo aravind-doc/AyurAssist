@@ -112,6 +112,14 @@
     .pipeline-tagline strong{color:var(--green-deep)}
     .invest-card{padding:14px 18px;background:var(--bg-cream);border:1px solid var(--border);border-radius:var(--r-md);border-left:3px solid var(--amber)}
     .invest-card p{font-size:13px;color:var(--text-mid);line-height:1.5}
+    .invest-grid{display:flex;flex-direction:column;gap:8px}
+    .invest-item{padding:12px 16px;background:var(--bg-cream);border:1px solid var(--border);border-radius:var(--r-sm);border-left:3px solid var(--amber)}
+    .invest-name{font-size:14px;font-weight:600;color:var(--text-dark);margin-bottom:2px}
+    .invest-finding{font-size:13px;color:var(--text-mid);line-height:1.5}
+    .dd-grid{display:flex;flex-direction:column;gap:8px}
+    .dd-item{padding:12px 16px;background:var(--bg-cream);border:1px solid var(--border);border-radius:var(--r-sm);border-left:3px solid #5B8DEF}
+    .dd-name{font-size:14px;font-weight:600;color:var(--text-dark);margin-bottom:2px}
+    .dd-detail{font-size:13px;color:var(--text-mid);line-height:1.5}
     .fade-in{animation:fadeUp .5s ease both}
     @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
     @media(max-width:640px){.two-col,.diet-grid,.remedy-fields{grid-template-columns:1fr}.header h1{font-size:32px}.disease-header h2{font-size:24px}.search-bar{flex-direction:column}.app{padding:16px 12px 40px}}
@@ -142,12 +150,6 @@
       <button class="search-btn" id="analyzeBtn" disabled>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg> Analyze
       </button>
-    </div>
-    <div class="search-footer">
-      <span class="tech-pill">🧠 scispacy en_core_sci_lg</span>
-      <span class="tech-pill">🤖 AyurParam LLM</span>
-      <span class="tech-pill">📋 226 WHO ITA Conditions</span>
-    </div>
     <!-- Pipeline flowchart -->
     <div class="pipeline-flow">
       <div class="pipe-step"><div class="pipe-icon">💬</div><span>Symptom Input</span></div>
@@ -629,16 +631,53 @@ function render(data,origSym){
     }
   }
 
-  // ═══ 10. DIFFERENTIAL DIAGNOSIS ═══
+  // ═══ 10. DIFFERENTIAL DIAGNOSIS — parse if numbered ═══
   if(!empty(R.differential_diagnosis)){
     H+='<div class="sc fade-in"><div class="sc-head"><div class="sc-icon blue">\uD83E\uDE7A</div><span class="sc-title">Differential Diagnosis (Vyavachedaka Nid\u0101na)</span></div>';
-    H+='<div class="diff-card"><p>'+fmt(R.differential_diagnosis)+'</p></div></div>';
+    var ddNumbered=splitInlineNumbered(R.differential_diagnosis);
+    var ddItems=ddNumbered.length>=2?ddNumbered.filter(function(n){return !n.isPreamble}).map(function(n){return n.text}):[];
+    var ddPreamble=ddNumbered.filter(function(n){return n.isPreamble})[0];
+    if(ddItems.length>=2){
+      if(ddPreamble&&ddPreamble.text.length>10)H+='<p class="desc-text" style="margin-bottom:12px">'+fmt(ddPreamble.text)+'</p>';
+      H+='<div class="dd-grid">';
+      ddItems.forEach(function(item){
+        var dashSplit=item.match(/^(.+?)\s*[\u2014\u2013\-]{1,2}\s*(.+)$/);
+        if(dashSplit){
+          H+='<div class="dd-item"><div class="dd-name">'+esc(stripMd(dashSplit[1]))+'</div><div class="dd-detail">'+esc(stripMd(dashSplit[2]))+'</div></div>';
+        }else{
+          H+='<div class="dd-item"><div class="dd-name">'+esc(stripMd(item))+'</div></div>';
+        }
+      });
+      H+='</div>';
+    }else{
+      H+='<div class="diff-card"><p>'+fmt(R.differential_diagnosis)+'</p></div>';
+    }
+    H+='</div>';
   }
 
-  // ═══ 11. INVESTIGATIONS & LABS ═══
+  // ═══ 11. INVESTIGATIONS & LABS — parse numbered items into structured list ═══
   if(!empty(R.investigations_labs)){
     H+='<div class="sc fade-in"><div class="sc-head"><div class="sc-icon amber">\uD83E\uDDEA</div><span class="sc-title">Investigations & Laboratory Tests</span></div>';
-    H+='<div class="invest-card"><p>'+fmt(R.investigations_labs)+'</p></div></div>';
+    var invNumbered=splitInlineNumbered(R.investigations_labs);
+    var invItems=invNumbered.length>=2?invNumbered.filter(function(n){return !n.isPreamble}).map(function(n){return n.text}):[];
+    var invPreamble=invNumbered.filter(function(n){return n.isPreamble})[0];
+    if(invItems.length>=2){
+      if(invPreamble&&invPreamble.text.length>10)H+='<p class="desc-text" style="margin-bottom:12px">'+fmt(invPreamble.text)+'</p>';
+      H+='<div class="invest-grid">';
+      invItems.forEach(function(item){
+        // Try to split "Test name (Sanskrit) — conclusion/finding"
+        var dashSplit=item.match(/^(.+?)\s*[\u2014\u2013\-]{1,2}\s*(.+)$/);
+        if(dashSplit){
+          H+='<div class="invest-item"><div class="invest-name">'+esc(stripMd(dashSplit[1]))+'</div><div class="invest-finding">'+esc(stripMd(dashSplit[2]))+'</div></div>';
+        }else{
+          H+='<div class="invest-item"><div class="invest-name">'+esc(stripMd(item))+'</div></div>';
+        }
+      });
+      H+='</div>';
+    }else{
+      H+='<div class="invest-card"><p>'+fmt(R.investigations_labs)+'</p></div>';
+    }
+    H+='</div>';
   }
 
   // ═══ BACKWARD COMPAT: old combined keys ═══
