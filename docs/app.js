@@ -1,4 +1,9 @@
-/* AyurAssist v7.1 — Fixed: tech pills removed, formulation "(Ref:" name breakage fixed */
+/* AyurAssist v7.2 — Fixes:
+   1. splitInlineNumbered now matches (1), (2) parenthesized number format
+   2. Scroll-box on Investigations AND Warning Signs
+   3. Warning items deduped
+   4. Formulation "(Ref:" name breakage fix retained from v7.1
+*/
 
 var API='https://aravindkv28--ayurparam-service-fastapi-app.modal.run';
 var $=function(id){return document.getElementById(id)};
@@ -20,10 +25,16 @@ function empty(t){if(!t||typeof t!=='string')return true;var s=t.trim();if(s.len
 function stripMd(s){return s.replace(/\*\*/g,'').replace(/\*/g,'').trim()}
 function fmt(text){if(!text)return '';return esc(text).replace(/\*\*([^*]+?)\*\*/g,'<strong>$1</strong>').replace(/\*([^*]+?)\*/g,'<em>$1</em>')}
 
+/**
+ * FIX v7.2: Now matches THREE numbered formats:
+ *   (1) Text   — parenthesized numbers like "(1)", "(2)"
+ *   1) Text    — bare number + closing paren
+ *   1. Text    — number + dot (before uppercase)
+ */
 function splitInlineNumbered(text){
   if(!text)return [];
   var positions=[];
-  var rx=/(?:^|[\s,;.])(\d{1,2})\)\s*|(?:^|[.\s])(\d{1,2})\.\s+(?=[A-Z*])/g;
+  var rx=/(?:^|[\s,;.])\((\d{1,2})\)\s*|(?:^|[\s,;.])(\d{1,2})\)\s*|(?:^|[.\s])(\d{1,2})\.\s+(?=[A-Z*])/g;
   var m;
   while((m=rx.exec(text))!==null){positions.push({pos:m.index,len:m[0].length})}
   if(positions.length<2)return [];
@@ -92,31 +103,17 @@ function cleanRepetition(text){
   return text;
 }
 
-/**
- * FIX v7.1: Repair broken name when colonM splits inside "(Ref: ...)"
- *
- * Problem: LLM outputs "Kṣavathu Hara Yoga (Ref: AH, Uttara 175): 1 masha..."
- *          colonM splits at first ":" → name="...Yoga (Ref"  desc="AH, Uttara 175): 1 masha..."
- *
- * This detects unclosed "(" in name, finds closing ")" in desc, reconstructs properly.
- */
+/* FIX v7.1: Repair broken name when colonM splits inside "(Ref: ...)" */
 function fixBrokenParenName(entry){
   if(!entry.name||!entry.desc)return;
   var openCount=(entry.name.match(/\(/g)||[]).length;
   var closeCount=(entry.name.match(/\)/g)||[]).length;
-  if(openCount<=closeCount)return; // balanced — no fix needed
-
+  if(openCount<=closeCount)return;
   var closeIdx=entry.desc.indexOf(')');
   if(closeIdx<0)return;
-
-  // Reconstruct full text: "Yoga (Ref" + ": " + "AH, Uttara 175)"
   var fragment=entry.desc.substring(0,closeIdx+1);
   var fullName=entry.name+': '+fragment;
-
-  // Update desc to everything after ")"
   entry.desc=entry.desc.substring(closeIdx+1).replace(/^[\s:,;\-\u2013\u2014]+/,'').trim();
-
-  // Extract reference from the parenthesized part
   var refMatch=fullName.match(/\((?:Ref|Reference)\.?\s*[:\-\u2013]?\s*([^)]*)\)/i);
   if(refMatch){
     if(!entry.reference)entry.reference=stripMd(refMatch[1]);
@@ -143,12 +140,10 @@ function parseRemedies(rawText){
       entry.name=boldM[1].trim();
       entry.desc=sec.substring(sec.indexOf(boldM[0])+boldM[0].length).trim();
     }else{
-      /* FIX v7.1: Try "Name (Ref: Source): desc" pattern FIRST before generic colonM */
       var refNameM=sec.match(/^(.+?)\s*\((?:Ref|Reference)\.?\s*[:\-\u2013]?\s*([^)]*)\)\s*[:\-\u2013]\s*(.*)/si);
       if(refNameM){
         entry.name=stripMd(refNameM[1]);
         entry.desc=refNameM[3].trim();
-        /* store reference for later if needed */
       }else{
         var nameColonM=sec.match(/^([A-Z\u0100-\u024F][^:\-\u2013]{2,60}?(?:\([^)]+\))?)\s*[:\u2013\u2014]\s*(.*)/s);
         if(nameColonM){entry.name=stripMd(nameColonM[1]);entry.desc=nameColonM[2].trim()}
@@ -156,7 +151,6 @@ function parseRemedies(rawText){
       }
     }
 
-    /* Safety net: fix any remaining broken "(Ref:" in name */
     fixBrokenParenName(entry);
 
     var fieldPatterns=[
@@ -201,14 +195,11 @@ function parseFormulations(rawText){
     var sec=sections[i];if(empty(sec)||sec.length<8)continue;
     var entry={name:'',desc:'',dose:'',reference:'',contains:'',form:'',cleanDesc:''};
 
-    /* Step 1: Extract name + desc */
     var boldM=sec.match(/\*\*([^*]+?)\*\*\s*[:\-\u2013]?\s*/);
     if(boldM){
       entry.name=boldM[1].trim();
       entry.desc=sec.substring(sec.indexOf(boldM[0])+boldM[0].length).trim();
     }else{
-      /* FIX v7.1: Try "Name (Ref: Source Text): description" as a WHOLE pattern first.
-         This prevents the generic colonM from splitting on the ":" inside "(Ref: ...)" */
       var refNameM=sec.match(/^(.+?)\s*\((?:Ref|Reference)\.?\s*[:\-\u2013]?\s*([^)]*)\)\s*[:\-\u2013]\s*(.*)/si);
       if(refNameM){
         entry.name=stripMd(refNameM[1]);
@@ -225,10 +216,8 @@ function parseFormulations(rawText){
       }
     }
 
-    /* Safety net: fix any remaining broken "(Ref:" in name from bold match or colonM */
     fixBrokenParenName(entry);
 
-    /* Step 2: Extract structured fields from desc */
     var dM=entry.desc.match(/(?:Dos(?:e|age))\s*[:\-\u2013]\s*([^.]+)/i);if(dM)entry.dose=stripMd(dM[1]);
     if(!entry.dose){dM=entry.desc.match(/(\d+[\-\u2013]\d+\s*(?:mg|g|ml|tablets?)[^.]{0,40})/i);if(dM)entry.dose=stripMd(dM[1])}
 
@@ -291,6 +280,8 @@ function parseModernCorrelation(text){
       result.warningItems=wItems.map(function(s){return stripMd(s).replace(/\.\s*$/,'').trim()}).filter(function(s){return s.length>3});
     }
   }
+  /* FIX v7.2: Dedup warning items */
+  if(result.warningItems.length>0)result.warningItems=dedup(result.warningItems);
   result.correlation=result.correlation.replace(/^(?:The\s+)?modern\s+(?:medical\s+)?correlation\s+(?:for\s+\w+\s+)?(?:is|includes?)\s*/i,'').trim();
   result.treatment=result.treatment.replace(/^(?:The\s+)?general\s+line\s+of\s+treatment\s+(?:in\s+modern\s+medicine\s+)?(?:for\s+\w+\s+)?(?:includes?)\s*:?\s*/i,'').trim();
   result.warnings=result.warnings.replace(/^(?:Danger\s+signs?\s*(?:or\s+red\s*flags?\s*)?(?:requiring|needing)\s+immediate\s+(?:medical\s+)?attention\s*(?:include)?\s*:?\s*)/i,'').trim();
@@ -498,10 +489,15 @@ function render(data,origSym){
       H+='<p class="desc-text">'+fmt(R.modern_correlation_warnings)+'</p>';
     }
     H+='</div></div>';
+
+    /* FIX v7.2: Warning Signs wrapped in scroll-box + deduped */
     if((mc.warnings&&mc.warnings.length>5)||mc.warningItems.length>0){
       H+='<div class="sc fade-in"><div class="sc-head"><div class="sc-icon red">\u26A0\uFE0F</div><span class="sc-title">Warning Signs & Red Flags</span></div>';
-      if(mc.warningItems.length>0){H+='<div class="warn-list">';mc.warningItems.forEach(function(w){H+='<div class="warn-item"><div class="warn-icon">!</div><span>'+esc(w)+'</span></div>'});H+='</div>'}
-      else{H+='<p class="desc-text">'+fmt(mc.warnings)+'</p>'}
+      if(mc.warningItems.length>0){
+        H+='<div class="scroll-box"><div class="warn-list">';
+        mc.warningItems.forEach(function(w){H+='<div class="warn-item"><div class="warn-icon">!</div><span>'+esc(w)+'</span></div>'});
+        H+='</div></div>';
+      }else{H+='<p class="desc-text">'+fmt(mc.warnings)+'</p>'}
       H+='</div>';
     }
   }
@@ -514,18 +510,18 @@ function render(data,origSym){
     var ddPreamble=ddNumbered.filter(function(n){return n.isPreamble})[0];
     if(ddItems.length>=2){
       if(ddPreamble&&ddPreamble.text.length>10)H+='<p class="desc-text" style="margin-bottom:12px">'+fmt(ddPreamble.text)+'</p>';
-      H+='<div class="dd-grid">';
+      H+='<div class="scroll-box"><div class="dd-grid">';
       ddItems.forEach(function(item){
         var dashSplit=item.match(/^(.+?)\s*[\u2014\u2013\-]{1,2}\s*(.+)$/);
         if(dashSplit){H+='<div class="dd-item"><div class="dd-name">'+esc(stripMd(dashSplit[1]))+'</div><div class="dd-detail">'+esc(stripMd(dashSplit[2]))+'</div></div>'}
         else{H+='<div class="dd-item"><div class="dd-name">'+esc(stripMd(item))+'</div></div>'}
       });
-      H+='</div>';
+      H+='</div></div>';
     }else{H+='<div class="diff-card"><p>'+fmt(R.differential_diagnosis)+'</p></div>'}
     H+='</div>';
   }
 
-  // ═══ 11. INVESTIGATIONS ═══
+  // ═══ 11. INVESTIGATIONS — scroll-box ═══
   if(!empty(R.investigations_labs)){
     var invRaw=cleanRepetition(R.investigations_labs);
     H+='<div class="sc fade-in"><div class="sc-head"><div class="sc-icon amber">\uD83E\uDDEA</div><span class="sc-title">Investigations & Laboratory Tests</span></div>';
@@ -534,14 +530,14 @@ function render(data,origSym){
     var invPreamble=invNumbered.filter(function(n){return n.isPreamble})[0];
     if(invItems.length>=2){
       if(invPreamble&&invPreamble.text.length>10)H+='<p class="desc-text" style="margin-bottom:12px">'+fmt(invPreamble.text)+'</p>';
-      H+='<div class="invest-scroll"><div class="invest-grid">';
+      H+='<div class="scroll-box"><div class="invest-grid">';
       dedup(invItems).slice(0,12).forEach(function(item){
         var dashSplit=item.match(/^(.+?)\s*[\u2014\u2013]{1}\s*(.+)$/)||item.match(/^(.+?)\s+\-\s+(.+)$/);
         if(dashSplit){H+='<div class="invest-item"><div class="invest-name">'+esc(stripMd(dashSplit[1]))+'</div><div class="invest-finding">'+esc(stripMd(dashSplit[2]))+'</div></div>'}
         else{H+='<div class="invest-item"><div class="invest-name">'+esc(stripMd(item))+'</div></div>'}
       });
       H+='</div></div>';
-    }else{H+='<div class="invest-scroll"><div class="invest-card"><p>'+fmt(invRaw)+'</p></div></div>'}
+    }else{H+='<div class="scroll-box"><div class="invest-card"><p>'+fmt(invRaw)+'</p></div></div>'}
     H+='</div>';
   }
 
