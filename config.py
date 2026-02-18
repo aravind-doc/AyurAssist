@@ -8,45 +8,33 @@
 
 # ── Modal ─────────────────────────────────────────────────────
 MODAL_APP_NAME = "ayurparam-service"
-MODAL_VOLUME_NAME = "ayurparam-models-final"
-MODAL_SECRET_HUGGINGFACE = "huggingface-secret"
 MODAL_SECRET_UMLS = "my-umls-secret"
+MODAL_SECRET_GROQ = "groq-secret"
 
-# ── GPU tier (LLMEngine) ─────────────────────────────────────
-GPU_TYPE = "T4"
-GPU_TIMEOUT = 600              # seconds
-GPU_MIN_CONTAINERS = 0
-GPU_SCALEDOWN_WINDOW = 60      # seconds idle before shutdown
-
-# ── CPU tier (ASGI + NER orchestrator) ───────────────────────
+# ── CPU tier (ASGI + NER + Groq orchestrator) ────────────────
 CPU_TIMEOUT = 1200             # seconds
 CPU_SCALEDOWN_WINDOW = 300     # seconds idle before shutdown
 
-# ── Models ───────────────────────────────────────────────────
-LLM_MODEL_ID = "bharatgenai/AyurParam"
-LLM_MAX_MODEL_LEN = 2048
-LLM_MAX_TOKENS = 600
-LLM_TEMPERATURE = 0.6
-LLM_TOP_P = 0.95
-LLM_TOP_K = 50
-LLM_REPETITION_PENALTY = 1.1
-LLM_DTYPE = "half"
+# ── Groq LLM ─────────────────────────────────────────────────
+GROQ_MODEL = "qwen/qwen3-32b"
+GROQ_RATE_LIMIT_DELAY = 0.5   # seconds between sequential Groq calls
 
+# ── LLM generation params ────────────────────────────────────
+LLM_TEMPERATURE = 0.3
+LLM_MAX_TOKENS = 1024
+
+# ── NER ──────────────────────────────────────────────────────
 NER_MODEL_NAME = "en_core_sci_lg"
 
-# ── Data ─────────────────────────────────────────────────────
-CSV_SOURCE_PATH = "ayurveda_snomed_mapping.csv"
-CSV_CONTAINER_PATH = "/app/ayurveda_snomed_mapping.csv"
-MODEL_CACHE_DIR = "/cache/models"
-VOLUME_MOUNT_PATH = "/cache"
+# ── ITA vocabulary ───────────────────────────────────────────
+ITA_CSV_SOURCE_PATH = "who-ita/ita_terms_ascii.csv"
+ITA_CSV_CONTAINER_PATH = "/app/ita_terms_ascii.csv"
+FUZZY_THRESHOLD = 0.80
 
 # ── UMLS API ─────────────────────────────────────────────────
 UMLS_SEARCH_URL = "https://uts-ws.nlm.nih.gov/rest/search/current"
 UMLS_ATOMS_URL_TEMPLATE = "https://uts-ws.nlm.nih.gov/rest/content/current/CUI/{cui}/atoms"
 UMLS_REQUEST_TIMEOUT = 10      # seconds
-
-# ── Fuzzy matching ───────────────────────────────────────────
-FUZZY_MATCH_THRESHOLD = 0.6
 
 # ── Python version for container images ──────────────────────
 PYTHON_VERSION = "3.11"
