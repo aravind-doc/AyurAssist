@@ -57,7 +57,6 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(circle
 .sc-icon.green{background:var(--green-light)}.sc-icon.amber{background:var(--amber-soft)}.sc-icon.terra{background:var(--terra-soft)}.sc-icon.red{background:var(--red-soft)}.sc-icon.blue{background:var(--blue-soft)}
 .sc-title{font-family:'Fraunces',serif;font-size:18px;font-weight:600;color:var(--text-dark)}
 .desc-text{font-size:15px;line-height:1.65;color:var(--text-mid)}
-/* fmt-rendered markdown styles */
 .fmt-h3{display:block;font-family:'Fraunces',serif;font-size:15px;font-weight:700;color:var(--green-deep);margin:14px 0 6px;padding-bottom:4px;border-bottom:1px solid var(--green-light)}
 .fmt-h3:first-child{margin-top:0}
 .fmt-h2{display:block;font-family:'Fraunces',serif;font-size:17px;font-weight:700;color:var(--green-deep);margin:16px 0 8px}
@@ -73,10 +72,10 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(circle
 .remedy-grid{display:grid;gap:12px}
 .remedy-card{background:var(--bg-cream);border:1px solid var(--border);border-radius:var(--r-md);padding:20px;transition:.2s}
 .remedy-card:hover{border-color:var(--green-soft);box-shadow:var(--shadow-sm)}
-.remedy-name{font-weight:600;font-size:16px;color:var(--green-deep);margin-bottom:2px}
+.remedy-name{font-weight:700;font-size:16px;color:var(--green-deep);margin-bottom:2px}
 .remedy-sanskrit{font-family:'Fraunces',serif;font-style:italic;font-size:13px;color:var(--terra);margin-bottom:12px}
-.remedy-fields{display:grid;grid-template-columns:1fr 1fr;gap:10px 20px}
-.rf{font-size:13px;color:var(--text-mid)}.rf-label{display:block;font-size:11px;font-weight:600;color:var(--text-light);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px}
+.remedy-fields{display:grid;grid-template-columns:1fr 1fr;gap:10px 20px;margin-top:10px}
+.rf{font-size:13px;color:var(--text-mid)}.rf-label{display:block;font-size:11px;font-weight:600;color:var(--text-light);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}
 .form-card{background:var(--bg-cream);border:1px solid var(--border);border-radius:var(--r-md);padding:20px}
 .form-card h4{font-family:'Fraunces',serif;font-size:16px;font-weight:600;color:var(--green-deep);margin-bottom:8px}
 .form-desc{font-size:13px;color:var(--text-mid);line-height:1.6;margin-bottom:8px}
@@ -198,11 +197,11 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(circle
   <div id="results" class="hidden"></div>
   <div id="disclaimerFooter" class="disclaimer hidden">
     ⚕️ This information is for <strong>educational purposes only</strong>. Always consult a qualified Ayurvedic practitioner before starting any treatment.
-    <br><span style="font-size:11px;margin-top:4px;display:inline-block">AyurAssist v7.3 · NLP + LLM · WHO ITA · SNOMED CT · ICD-10</span>
+    <br><span style="font-size:11px;margin-top:4px;display:inline-block">AyurAssist v7.4 · NLP + LLM · WHO ITA · SNOMED CT · ICD-10</span>
   </div>
 </div>
 <script>
-/* AyurAssist v7.3 — Key fix: fmt() now renders markdown (###, **, *, ---, bullets) as HTML */
+/* AyurAssist v7.4 — Fixed parseRemedies: delimiter-split approach for accurate field extraction */
 
 var API='https://aravindkv28--ayurparam-service-fastapi-app.modal.run';
 var $=function(id){return document.getElementById(id)};
@@ -218,58 +217,38 @@ btn.addEventListener('click',doAnalyze);
 $('examples').addEventListener('click',function(e){if(e.target.classList.contains('example-btn')){input.value=e.target.dataset.value||'';btn.disabled=false;input.focus()}});
 
 /* ═══ UTILITIES ═══ */
-
 function esc(s){if(s==null)return '';var d=document.createElement('div');d.textContent=String(s);return d.innerHTML}
 function empty(t){if(!t||typeof t!=='string')return true;var s=t.trim();if(s.length<5)return true;return /^(not provided|not available|not mentioned|no information|not given|not specified|not found|no data|none available|cannot be determined|n\/a)$/i.test(s)}
-function stripMd(s){return s.replace(/\*\*/g,'').replace(/\*/g,'').trim()}
+function stripMd(s){return s?s.replace(/\*\*/g,'').replace(/\*/g,'').trim():''}
 
-/* ═══ FMT v7.3 — Full markdown → HTML renderer ═══
-   Handles: ### ## headings, **bold**, *italic*, ---, - bullets, numbered lists, line breaks
-*/
+/* ═══ FMT v7.4 — Full markdown → HTML renderer ═══ */
 function fmt(text){
   if(!text)return '';
-  // Process line by line for block elements, then inline
   var lines=text.split('\n');
   var html='';
   for(var i=0;i<lines.length;i++){
     var line=lines[i];
-    // Horizontal rule
-    if(/^---+\s*$/.test(line.trim())){
-      html+='<hr class="fmt-hr">';
-      continue;
-    }
-    // H3
+    if(/^---+\s*$/.test(line.trim())){html+='<hr class="fmt-hr">';continue}
     var h3=line.match(/^###\s+(.+)/);
     if(h3){html+='<span class="fmt-h3">'+inlineFmt(h3[1])+'</span>';continue}
-    // H2
     var h2=line.match(/^##\s+(.+)/);
     if(h2){html+='<span class="fmt-h2">'+inlineFmt(h2[1])+'</span>';continue}
-    // Bullet: - item or • item
     var bullet=line.match(/^[\-\u2022\u25B8]\s+(.+)/);
     if(bullet){html+='<div class="fmt-bullet"><span class="fmt-bullet-dot">▸</span><span>'+inlineFmt(bullet[1])+'</span></div>';continue}
-    // Numbered list: 1. item or 1) item
     var numbered=line.match(/^\d{1,2}[.)]\s+(.+)/);
     if(numbered){html+='<div class="fmt-bullet"><span class="fmt-bullet-dot" style="color:var(--amber)">•</span><span>'+inlineFmt(numbered[1])+'</span></div>';continue}
-    // Empty line → spacing
     if(line.trim()===''){html+='<div style="height:6px"></div>';continue}
-    // Regular paragraph line
     html+=inlineFmt(line)+'<br>';
   }
-  // Clean up trailing <br> tags
   html=html.replace(/(<br>\s*)+$/,'');
   return html;
 }
 
-/* Handles inline markdown: **bold**, *italic*, `code` */
 function inlineFmt(text){
   if(!text)return '';
-  // Escape HTML first
   var s=esc(text);
-  // Bold **text**
   s=s.replace(/\*\*([^*]+?)\*\*/g,'<strong class="fmt-bold">$1</strong>');
-  // Italic *text*
   s=s.replace(/\*([^*]+?)\*/g,'<em class="fmt-em">$1</em>');
-  // Inline code `text`
   s=s.replace(/`([^`]+?)`/g,'<code style="background:var(--bg-warm);padding:1px 5px;border-radius:4px;font-size:12px;color:var(--terra)">$1</code>');
   return s;
 }
@@ -314,7 +293,7 @@ function isProse(text){
 function dedup(items){
   var seen={};var result=[];
   for(var i=0;i<items.length;i++){
-    var key=items[i].toLowerCase().replace(/[\u0100-\u024F]/g,function(c){return c.normalize('NFD').replace(/[\u0300-\u036f]/g,'')}).replace(/[^a-z0-9\s]/g,'').replace(/\s+/g,' ').trim();
+    var key=items[i].toLowerCase().replace(/[^a-z0-9\s]/g,'').replace(/\s+/g,' ').trim();
     var prefix=key.substring(0,25);
     if(seen[key]||seen[prefix])continue;
     seen[key]=true;seen[prefix]=true;result.push(items[i]);
@@ -337,8 +316,7 @@ function cleanRepetition(text){
     var seen2={};var cleaned=[];var dupCount=0;
     for(var j=0;j<chunks.length;j++){
       var n2=chunks[j].toLowerCase().replace(/[^a-z0-9\s]/g,'').trim();
-      if(seen2[n2]){dupCount++;if(dupCount>2)continue}
-      else{seen2[n2]=true;dupCount=0}
+      if(seen2[n2]){dupCount++;if(dupCount>2)continue}else{seen2[n2]=true;dupCount=0}
       cleaned.push(chunks[j]);
     }
     return cleaned.join(', ').trim().replace(/,\s*$/,'')+'.'
@@ -346,102 +324,161 @@ function cleanRepetition(text){
   return text;
 }
 
-function fixBrokenParenName(entry){
-  if(!entry.name||!entry.desc)return;
-  var openCount=(entry.name.match(/\(/g)||[]).length;
-  var closeCount=(entry.name.match(/\)/g)||[]).length;
-  if(openCount<=closeCount)return;
-  var closeIdx=entry.desc.indexOf(')');
-  if(closeIdx<0)return;
-  var fragment=entry.desc.substring(0,closeIdx+1);
-  var fullName=entry.name+': '+fragment;
-  entry.desc=entry.desc.substring(closeIdx+1).replace(/^[\s:,;\-\u2013\u2014]+/,'').trim();
-  var refMatch=fullName.match(/\((?:Ref|Reference)\.?\s*[:\-\u2013]?\s*([^)]*)\)/i);
-  if(refMatch){
-    if(!entry.reference)entry.reference=stripMd(refMatch[1]);
-    entry.name=fullName.replace(/\s*\((?:Ref|Reference)\.?\s*[:\-\u2013]?\s*[^)]*\)/i,'').trim();
-  }else{
-    entry.name=fullName;
-  }
-}
+/* ═══════════════════════════════════════════════════════════════
+   OTTAMOOLI PARSER v7.4
+   ─────────────────────────────────────────────────────────────
+   STRATEGY: Split each remedy block on " — " delimiter, then map
+   each segment to a field by its label prefix.
 
-/* ═══ OTTAMOOLI PARSER ═══ */
+   LLM format:
+     1. **Ashwagandha** — Sanskrit: Withania somnifera — Part Used: Root
+        — Preparation: Powder mixed with warm milk (3g) — Dosage: 3g
+        twice daily — Duration: 4–6 weeks
+
+   This avoids the old regex-lookahead approach that broke when
+   parentheses contained numbers or lowercase text (e.g. "(10 ml)").
+═══════════════════════════════════════════════════════════════ */
 function parseRemedies(rawText){
   if(!rawText||empty(rawText))return [];
-  var numbered=splitInlineNumbered(rawText);
-  var sections=numbered.length>=2?numbered.filter(function(n){return !n.isPreamble}).map(function(n){return n.text}):[];
-  if(sections.length===0&&rawText.indexOf('**')>=0){sections=rawText.split(/(?=\d+\.\s*\*\*|\*\*[A-Z])/).filter(function(s){return s.trim().length>10}).map(function(s){return s.trim()})}
-  if(sections.length===0)sections=[rawText];
+
+  // Split into per-remedy blocks on numbered list markers
+  var blocks=[];
+  // Try newline-based numbered split first
+  var nlBlocks=rawText.split(/\n(?=\d+[\.\)]\s)/);
+  if(nlBlocks.length>=2){
+    blocks=nlBlocks;
+  } else {
+    // Try bold-marker split: "1. **Name**"
+    var boldBlocks=rawText.split(/(?=\d+[\.\)]\s*\*\*)/);
+    if(boldBlocks.length>=2){blocks=boldBlocks}
+    else{blocks=[rawText]}
+  }
+
   var results=[];
-  for(var i=0;i<sections.length;i++){
-    var sec=sections[i];if(empty(sec)||sec.length<8)continue;
-    var entry={name:'',sanskrit:'',part:'',preparation:'',dosage:'',duration:'',actions:'',desc:''};
-    var boldM=sec.match(/\*\*([^*]+?)\*\*\s*[:\-\u2013]?\s*/);
-    if(boldM){entry.name=boldM[1].trim();entry.desc=sec.substring(sec.indexOf(boldM[0])+boldM[0].length).trim()}
-    else{
-      var refNameM=sec.match(/^(.+?)\s*\((?:Ref|Reference)\.?\s*[:\-\u2013]?\s*([^)]*)\)\s*[:\-\u2013]\s*(.*)/si);
-      if(refNameM){entry.name=stripMd(refNameM[1]);entry.desc=refNameM[3].trim()}
-      else{
-        var nameColonM=sec.match(/^([A-Z\u0100-\u024F][^:\-\u2013]{2,60}?(?:\([^)]+\))?)\s*[:\u2013\u2014]\s*(.*)/s);
-        if(nameColonM){entry.name=stripMd(nameColonM[1]);entry.desc=nameColonM[2].trim()}
-        else{entry.desc=sec}
+
+  for(var bi=0;bi<blocks.length;bi++){
+    var block=blocks[bi].trim();
+    if(!block||block.length<8)continue;
+
+    // Remove leading number+dot/paren
+    block=block.replace(/^\d+[\.\)]\s*/,'');
+
+    var entry={name:'',sanskrit:'',part:'',preparation:'',dosage:'',duration:'',actions:''};
+
+    // ── Extract name from **bold** ──
+    var boldM=block.match(/^\*\*([^*]+)\*\*/);
+    if(boldM){
+      entry.name=boldM[1].trim();
+      block=block.substring(boldM[0].length).trim();
+    } else {
+      // Fallback: name is everything before the first " — " or ":"
+      var dashIdx=block.indexOf(' \u2014 ');
+      if(dashIdx<0)dashIdx=block.indexOf(' — ');
+      if(dashIdx>0&&dashIdx<60){entry.name=stripMd(block.substring(0,dashIdx).trim());block=block.substring(dashIdx).trim()}
+      else{var colonIdx=block.indexOf(':');if(colonIdx>0&&colonIdx<60){entry.name=stripMd(block.substring(0,colonIdx).trim());block=block.substring(colonIdx+1).trim()}}
+    }
+
+    // ── Split remainder on " — " delimiter ──
+    // Normalise various dash types to plain " — "
+    var remainder=block.replace(/\s*[\u2013\u2014]\s*/g,' — ').replace(/\s+—\s+/g,' — ');
+    var segments=remainder.split(' — ').map(function(s){return s.trim()}).filter(function(s){return s.length>0});
+
+    for(var si=0;si<segments.length;si++){
+      var seg=segments[si];
+
+      // Each segment is "Label: value" or just a value
+      var colonPos=seg.indexOf(':');
+      if(colonPos<=0){
+        // No label — treat as description if nothing else set
+        if(!entry.actions&&seg.length>5)entry.actions=stripMd(seg);
+        continue;
       }
+
+      var label=seg.substring(0,colonPos).trim().toLowerCase();
+      var value=seg.substring(colonPos+1).trim();
+
+      // Some labels may have trailing punctuation from parsing
+      if(/sanskrit/.test(label))         entry.sanskrit   = stripMd(value);
+      else if(/part\s*used|part/.test(label)) entry.part  = stripMd(value);
+      else if(/preparation|prep/.test(label)) entry.preparation = stripMd(value);
+      else if(/dos(?:age|e)/.test(label)) entry.dosage    = stripMd(value);
+      else if(/duration/.test(label))     entry.duration   = stripMd(value);
+      else if(/action|effect/.test(label))entry.actions   = stripMd(value);
     }
-    fixBrokenParenName(entry);
-    var fieldPatterns=[
-      [/(?:^|[\-\u2013]\s*)Sanskrit\s*(?:name)?\s*[:\-]\s*([^,\-\u2013]+?)(?=\s*[\-\u2013]\s*[A-Z]|\s*$)/i,'sanskrit'],
-      [/(?:^|[\-\u2013]\s*)Part\s*(?:Used)?\s*[:\-]\s*([^,\-\u2013]+?)(?=\s*[\-\u2013]\s*[A-Z]|\s*$)/i,'part'],
-      [/(?:^|[\-\u2013]\s*)Preparation\s*[:\-]\s*([^,\-\u2013]+?)(?=\s*[\-\u2013]\s*(?:Dos|Dur|Eff|[A-Z])|\s*$)/i,'preparation'],
-      [/(?:^|[\-\u2013]\s*)Dos(?:e|age)\s*[:\-]\s*([^,\-\u2013]+?)(?=\s*[\-\u2013]\s*(?:Dur|Eff|[A-Z])|\s*$)/i,'dosage'],
-      [/(?:^|[\-\u2013]\s*)Duration\s*[:\-]\s*([^,\-\u2013]+?)(?=\s*[\-\u2013]\s*(?:Eff|[A-Z])|\s*$)/i,'duration'],
-      [/(?:^|[\-\u2013]\s*)(?:Effect|Actions?)\s*[:\-]\s*(.+?)(?=\s*$)/i,'actions']
-    ];
-    var fullText=entry.desc;
-    for(var fp=0;fp<fieldPatterns.length;fp++){var m=fullText.match(fieldPatterns[fp][0]);if(m)entry[fieldPatterns[fp][1]]=stripMd(m[1]).replace(/\.\s*$/,'')}
-    if(!entry.part&&!entry.dosage){
-      var kvP=[[/Part\s*(?:Used)?\s*[:\u2013]\s*([^.,;\-]+)/i,'part'],[/Preparation\s*[:\u2013]\s*([^.,;\-]+)/i,'preparation'],[/Dos(?:e|age)\s*[:\u2013]\s*([^.,;\-]+)/i,'dosage'],[/Duration\s*[:\u2013]\s*([^.,;\-]+)/i,'duration'],[/(?:Effect|Actions?)\s*[:\u2013]\s*([^.]+)/i,'actions']];
-      for(var kv=0;kv<kvP.length;kv++){var km=entry.desc.match(kvP[kv][0]);if(km)entry[kvP[kv][1]]=stripMd(km[1])}
+
+    // Clean up any accidental "Preparation: X" bleeding into part field
+    if(entry.part&&/preparation/i.test(entry.part)){
+      var prepM=entry.part.match(/^([^—\-:]+?)\s*(?:—|\-|Preparation)/i);
+      if(prepM)entry.part=prepM[1].trim();
+      else entry.part='';
     }
-    entry.name=entry.name.replace(/:\s*$/,'').trim();
-    if(!entry.sanskrit){var skM=entry.desc.match(/^([A-Z\u0100-\u024F][a-z\u0100-\u024F]+)\s*[\-\u2013]/);if(skM)entry.sanskrit=skM[1]}
+
     if(entry.name||entry.part||entry.dosage)results.push(entry);
   }
+
   return results;
 }
 
-/* ═══ FORMULATION PARSER ═══ */
+/* ═══════════════════════════════════════════════════════════════
+   FORMULATION PARSER v7.4
+   Same delimiter-split strategy applied to classical formulations.
+   LLM format:
+     1. **Chyawanprash** — Form: Avaleha — Dosage: 10–20g daily
+        with warm milk — Reference: Charaka Samhita
+═══════════════════════════════════════════════════════════════ */
 function parseFormulations(rawText){
   if(!rawText||empty(rawText))return [];
-  var numbered=splitInlineNumbered(rawText);
-  var sections=numbered.length>=2?numbered.filter(function(n){return !n.isPreamble}).map(function(n){return n.text}):[];
-  if(sections.length===0&&rawText.indexOf('**')>=0){sections=rawText.split(/(?=\d+\.\s*\*\*|\*\*[A-Z])/).filter(function(s){return s.trim().length>10}).map(function(s){return s.trim()})}
-  if(sections.length===0)sections=[rawText];
+
+  var blocks=[];
+  var nlBlocks=rawText.split(/\n(?=\d+[\.\)]\s)/);
+  if(nlBlocks.length>=2){blocks=nlBlocks}
+  else{var boldBlocks=rawText.split(/(?=\d+[\.\)]\s*\*\*)/);if(boldBlocks.length>=2){blocks=boldBlocks}else{blocks=[rawText]}}
+
+  // Filter out pure preamble blocks (no bold name or very short)
+  blocks=blocks.filter(function(b){
+    var t=b.replace(/^\d+[\.\)]\s*/,'').trim();
+    return t.length>10&&!/^here\s+are/i.test(t)&&!/^the\s+following/i.test(t);
+  });
+
   var results=[];
-  for(var i=0;i<sections.length;i++){
-    var sec=sections[i];if(empty(sec)||sec.length<8)continue;
-    var entry={name:'',desc:'',dose:'',reference:'',contains:'',form:'',cleanDesc:''};
-    var boldM=sec.match(/\*\*([^*]+?)\*\*\s*[:\-\u2013]?\s*/);
-    if(boldM){entry.name=boldM[1].trim();entry.desc=sec.substring(sec.indexOf(boldM[0])+boldM[0].length).trim()}
+
+  for(var bi=0;bi<blocks.length;bi++){
+    var block=blocks[bi].trim().replace(/^\d+[\.\)]\s*/,'');
+    if(!block||block.length<8)continue;
+
+    var entry={name:'',form:'',dose:'',reference:'',contains:'',cleanDesc:''};
+
+    // Extract name
+    var boldM=block.match(/^\*\*([^*]+)\*\*/);
+    if(boldM){entry.name=boldM[1].trim();block=block.substring(boldM[0].length).trim()}
     else{
-      var refNameM=sec.match(/^(.+?)\s*\((?:Ref|Reference)\.?\s*[:\-\u2013]?\s*([^)]*)\)\s*[:\-\u2013]\s*(.*)/si);
-      if(refNameM){entry.name=stripMd(refNameM[1]);entry.reference=stripMd(refNameM[2]);entry.desc=refNameM[3].trim()}
-      else{
-        var dashM=sec.match(/^([A-Z\u0100-\u024F][^\u2013\u2014\-]{3,60}?)\s*[\u2013\u2014\-]\s*(.*)/s);
-        if(dashM){entry.name=stripMd(dashM[1]);entry.desc=dashM[2].trim()}
-        else{var colonM=sec.match(/^([^.]{5,80}?)\s*[:\-\u2013]\s+(.*)/s);if(colonM){entry.name=stripMd(colonM[1]);entry.desc=colonM[2].trim()}else entry.desc=sec}
-      }
+      var dashIdx=block.indexOf(' — ');
+      if(dashIdx<0)dashIdx=block.indexOf(' \u2014 ');
+      if(dashIdx>0&&dashIdx<70){entry.name=stripMd(block.substring(0,dashIdx).trim());block=block.substring(dashIdx).trim()}
     }
-    fixBrokenParenName(entry);
-    var dM=entry.desc.match(/(?:Dos(?:e|age))\s*[:\-\u2013]\s*([^.]+)/i);if(dM)entry.dose=stripMd(dM[1]);
-    if(!entry.dose){dM=entry.desc.match(/(\d+[\-\u2013]\d+\s*(?:mg|g|ml|tablets?)[^.]{0,40})/i);if(dM)entry.dose=stripMd(dM[1])}
-    if(!entry.reference){var refM=entry.desc.match(/(?:Reference|Ref\.?)\s*[:\-\u2013]\s*\*?([^*\n]+?)(?:\.\s*(?=[A-Z])|\.?\s*$)/i);if(refM)entry.reference=stripMd(refM[1]).replace(/\.\s*$/,'')}
-    var contM=entry.desc.match(/Contains?\s*[:\-\u2013]?\s+([^.]+)/i);if(contM)entry.contains=stripMd(contM[1]);
-    var formM=entry.desc.match(/Form\s*[:\-\u2013]\s*([^.]+)/i);if(formM)entry.form=stripMd(formM[1]);
-    var cd=entry.desc;
-    [/(?:Dos(?:e|age))\s*[:\-\u2013]\s*[^.]+\.?\s*/gi,/(?:Reference|Ref\.?)\s*[:\-\u2013]\s*\*?[^*\n]+?(?:\.\s*(?=[A-Z])|\.?\s*$)/gi,/Contains?\s*[:\-\u2013]?\s+[^.]+\.?\s*/gi,/Form\s*[:\-\u2013]\s*[^.]+\.?\s*/gi].forEach(function(rx){cd=cd.replace(rx,' ')});
-    entry.cleanDesc=stripMd(cd).replace(/\s{2,}/g,' ').trim();
-    if(entry.name||entry.cleanDesc.length>10)results.push(entry);
+
+    // Normalise and split on " — "
+    var remainder=block.replace(/\s*[\u2013\u2014]\s*/g,' — ').replace(/\s+—\s+/g,' — ');
+    var segments=remainder.split(' — ').map(function(s){return s.trim()}).filter(function(s){return s.length>0});
+
+    var descParts=[];
+    for(var si=0;si<segments.length;si++){
+      var seg=segments[si];
+      var colonPos=seg.indexOf(':');
+      if(colonPos<=0){descParts.push(stripMd(seg));continue}
+      var label=seg.substring(0,colonPos).trim().toLowerCase();
+      var value=seg.substring(colonPos+1).trim();
+      if(/form/.test(label))            entry.form=stripMd(value);
+      else if(/dos(?:age|e)/.test(label)) entry.dose=stripMd(value);
+      else if(/ref(?:erence)?/.test(label)) entry.reference=stripMd(value);
+      else if(/contains?/.test(label))  entry.contains=stripMd(value);
+      else descParts.push(stripMd(seg));
+    }
+    entry.cleanDesc=descParts.join('. ').replace(/\s{2,}/g,' ').trim();
+
+    if(entry.name||entry.dose)results.push(entry);
   }
+
   return results;
 }
 
@@ -514,6 +551,7 @@ function render(data,origSym){
   console.log('Response keys:',Object.keys(R));
   [nerStrip,matchBanner,diseaseHeader,resultsEl,disclaimer].forEach(function(e){e.classList.remove('hidden')});
 
+  // NER strip
   nerStrip.innerHTML='<span class="ner-strip-label">Detected Entities</span>';
   var ents=data.clinical_entities;
   if(ents&&ents.length){ents.forEach(function(e){var t=document.createElement('span');t.className='ner-tag';t.innerHTML=esc(e.word)+' <span class="score">'+esc(e.entity_group||'ENTITY')+' \u00B7 '+Math.round((e.score||.9)*100)+'%</span>';nerStrip.appendChild(t)})}
@@ -526,6 +564,7 @@ function render(data,origSym){
   $('diseaseName').textContent=cond;
   $('sanskritName').textContent=tx.sanskrit_name||(csv&&csv.sanskrit_iast)||(csv&&csv.sanskrit)||'';
 
+  // Dosha dots
   var oLow=((R.overview_dosha_causes||'')+' '+cond).toLowerCase();
   var dh='';
   if(/v[a\u0101]t/i.test(oLow))dh+='<span class="dosha-dot vata"></span>';
@@ -535,11 +574,11 @@ function render(data,origSym){
   dh+='<span class="dosha-text">Dosha imbalance \u2014 requires assessment</span>';
   $('doshaLine').innerHTML=dh;
 
+  // SNOMED + ICD-10
   var snomed=data.snomed_code||(data.results&&data.results[0]&&data.results[0].snomed_code)||'';
   var hasSNOMED=snomed&&snomed!=='N/A'&&snomed!=='00000000'&&snomed.length>1;
   $('snomedRow').style.display=hasSNOMED?'flex':'none';
   if(hasSNOMED){$('snomedCode').textContent=snomed;$('snomedName').textContent=data.snomed_name||cond}
-
   var icd10=data.icd10_code||(data.results&&data.results[0]&&data.results[0].icd10_code)||'';
   var hasICD=icd10&&icd10!=='N/A'&&icd10.length>1;
   $('icdRow').style.display=hasICD?'flex':'none';
@@ -603,18 +642,22 @@ function render(data,origSym){
   if(!empty(R.single_drug_remedies)){
     var remedies=parseRemedies(R.single_drug_remedies);
     H+='<div class="sc fade-in"><div class="sc-head"><div class="sc-icon green">🌿</div><span class="sc-title">Ottamooli — Single Medicine Remedies</span></div><div class="remedy-grid">';
-    if(remedies.length>0){remedies.forEach(function(r){
-      H+='<div class="remedy-card"><div class="remedy-name">'+esc(r.name||'Herbal Remedy')+'</div>';
-      if(r.sanskrit)H+='<div class="remedy-sanskrit">'+esc(r.sanskrit)+'</div>';
-      H+='<div class="remedy-fields">';
-      if(r.part)H+='<div class="rf"><span class="rf-label">Part Used</span>'+esc(r.part)+'</div>';
-      if(r.preparation)H+='<div class="rf"><span class="rf-label">Preparation</span>'+esc(r.preparation)+'</div>';
-      if(r.dosage)H+='<div class="rf"><span class="rf-label">Dosage</span>'+esc(r.dosage)+'</div>';
-      if(r.duration)H+='<div class="rf"><span class="rf-label">Duration</span>'+esc(r.duration)+'</div>';
-      if(r.actions)H+='<div class="rf" style="grid-column:1/-1"><span class="rf-label">Actions / Effect</span>'+esc(r.actions)+'</div>';
-      H+='</div></div>';
-    })}
-    else H+='<div class="desc-text" style="padding:4px">'+fmt(R.single_drug_remedies)+'</div>';
+    if(remedies.length>0){
+      remedies.forEach(function(r){
+        H+='<div class="remedy-card">';
+        H+='<div class="remedy-name">'+esc(r.name||'Herbal Remedy')+'</div>';
+        if(r.sanskrit)H+='<div class="remedy-sanskrit">'+esc(r.sanskrit)+'</div>';
+        H+='<div class="remedy-fields">';
+        if(r.part)       H+='<div class="rf"><span class="rf-label">Part Used</span>'+esc(r.part)+'</div>';
+        if(r.preparation)H+='<div class="rf"><span class="rf-label">Preparation</span>'+esc(r.preparation)+'</div>';
+        if(r.dosage)     H+='<div class="rf"><span class="rf-label">Dosage</span>'+esc(r.dosage)+'</div>';
+        if(r.duration)   H+='<div class="rf"><span class="rf-label">Duration</span>'+esc(r.duration)+'</div>';
+        if(r.actions)    H+='<div class="rf" style="grid-column:1/-1"><span class="rf-label">Actions / Effect</span>'+esc(r.actions)+'</div>';
+        H+='</div></div>';
+      });
+    } else {
+      H+='<div class="desc-text" style="padding:4px">'+fmt(R.single_drug_remedies)+'</div>';
+    }
     H+='</div></div>';
   }
 
@@ -622,18 +665,21 @@ function render(data,origSym){
   if(!empty(R.classical_formulations)){
     var formulations=parseFormulations(R.classical_formulations);
     H+='<div class="sc fade-in"><div class="sc-head"><div class="sc-icon amber">💊</div><span class="sc-title">Classical Formulations (Yogas)</span></div><div class="remedy-grid">';
-    if(formulations.length>0){formulations.forEach(function(f){
-      H+='<div class="form-card"><h4>'+esc(f.name||'Classical Formulation')+'</h4>';
-      if(f.cleanDesc&&f.cleanDesc.length>10)H+='<div class="form-desc">'+fmt(f.cleanDesc)+'</div>';
-      H+='<div class="form-meta">';
-      if(f.dose)H+='<span>💊 <strong>Dose:</strong> '+esc(f.dose)+'</span>';
-      if(f.form)H+='<span>📦 <strong>Form:</strong> '+esc(f.form)+'</span>';
-      if(f.contains)H+='<span>🧪 <strong>Contains:</strong> '+esc(f.contains)+'</span>';
-      H+='</div>';
-      if(f.reference)H+='<div class="ref-badge">📖 '+esc(f.reference)+'</div>';
-      H+='</div>';
-    })}
-    else H+='<div class="desc-text" style="padding:4px">'+fmt(R.classical_formulations)+'</div>';
+    if(formulations.length>0){
+      formulations.forEach(function(f){
+        H+='<div class="form-card"><h4>'+esc(f.name||'Classical Formulation')+'</h4>';
+        if(f.cleanDesc&&f.cleanDesc.length>10)H+='<div class="form-desc">'+fmt(f.cleanDesc)+'</div>';
+        H+='<div class="form-meta">';
+        if(f.dose)    H+='<span>💊 <strong>Dose:</strong> '+esc(f.dose)+'</span>';
+        if(f.form)    H+='<span>📦 <strong>Form:</strong> '+esc(f.form)+'</span>';
+        if(f.contains)H+='<span>🧪 <strong>Contains:</strong> '+esc(f.contains)+'</span>';
+        H+='</div>';
+        if(f.reference)H+='<div class="ref-badge">📖 '+esc(f.reference)+'</div>';
+        H+='</div>';
+      });
+    } else {
+      H+='<div class="desc-text" style="padding:4px">'+fmt(R.classical_formulations)+'</div>';
+    }
     H+='</div></div>';
   }
 
@@ -683,7 +729,6 @@ function render(data,origSym){
     }
     if((!mc.correlation||mc.correlation.length<=5)&&(!mc.treatment||mc.treatment.length<=5)&&mc.treatmentItems.length===0){H+='<div class="desc-text">'+fmt(R.modern_correlation_warnings)+'</div>'}
     H+='</div></div>';
-
     if((mc.warnings&&mc.warnings.length>5)||mc.warningItems.length>0){
       H+='<div class="sc fade-in"><div class="sc-head"><div class="sc-icon red">⚠️</div><span class="sc-title">Warning Signs & Red Flags</span></div>';
       if(mc.warningItems.length>0){H+='<div class="scroll-box"><div class="warn-list">';mc.warningItems.forEach(function(w){H+='<div class="warn-item"><div class="warn-icon">!</div><span>'+esc(w)+'</span></div>'});H+='</div></div>'}
@@ -747,12 +792,10 @@ function render(data,origSym){
 
   // ═══ BACKWARD COMPAT ═══
   if(!empty(R.panchakarma_diet_lifestyle_yoga)&&empty(R.panchakarma)){
-    H+='<div class="sc fade-in"><div class="sc-head"><div class="sc-icon amber">🛁</div><span class="sc-title">Treatment Protocols</span></div>';
-    H+='<div class="desc-text">'+fmt(R.panchakarma_diet_lifestyle_yoga)+'</div></div>';
+    H+='<div class="sc fade-in"><div class="sc-head"><div class="sc-icon amber">🛁</div><span class="sc-title">Treatment Protocols</span></div><div class="desc-text">'+fmt(R.panchakarma_diet_lifestyle_yoga)+'</div></div>';
   }
   if(!empty(R.prognosis_modern_warnings)&&empty(R.prognosis)){
-    H+='<div class="sc fade-in"><div class="sc-head"><div class="sc-icon green">📈</div><span class="sc-title">Prognosis & Clinical Notes</span></div>';
-    H+='<div class="prog-box">'+fmt(R.prognosis_modern_warnings)+'</div></div>';
+    H+='<div class="sc fade-in"><div class="sc-head"><div class="sc-icon green">📈</div><span class="sc-title">Prognosis & Clinical Notes</span></div><div class="prog-box">'+fmt(R.prognosis_modern_warnings)+'</div></div>';
   }
 
   // ═══ CATCH-ALL ═══
