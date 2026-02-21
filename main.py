@@ -488,8 +488,7 @@ def _call_groq_sync(client, prompt):
         model=GROQ_MODEL,
         messages=[{"role": "user", "content": prompt}],
         temperature=LLM_TEMPERATURE,
-        max_tokens=LLM_MAX_TOKENS,
-        reasoning_effort="none",
+        max_tokens=LLM_MAX_TOKENS,       
     )
     raw = resp.choices[0].message.content
     return _strip_thinking(raw)
